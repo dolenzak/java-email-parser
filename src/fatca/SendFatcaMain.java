@@ -46,49 +46,49 @@ public class SendFatcaMain {
 	public SendFatcaMain() throws Exception{
 		signer = new FATCAXmlSigner();
 		pkger = new FATCAPackager();
-		canadaSigKey = UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/Canada_PrepTool/KSprivateCA.jks", "pwd123", "CAN2014", "CANADAcert");
+		/*canadaSigKey = UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/Canada_PrepTool/KSprivateCA.jks", "pwd123", "CAN2014", "CANADAcert");
 		canadaPubCert = UtilShared.getCert("jks", System.getProperty("user.dir")+"/Keystore/Canada_PrepTool/KSpublicCA.jks", "pwd123", "CANADAcert");
 		usaCert = UtilShared.getCert("jks", System.getProperty("user.dir")+"/Keystore/IRS_PrepTool/KSpublicUS.jks", "pwd123", "IRScert");
 		mexicoPubCert = UtilShared.getCert("jks", System.getProperty("user.dir")+"/Keystore/Mexico_PrepTool/KSpublicMX.jks", "pwd123", "MEXICOcert");
 		usaPrivateKey = UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/IRS_PrepTool/KSprivateUS.jks", "pwd123", "password", "IRScert");
 		mexicoPrivateKey = UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/Mexico_PrepTool/KSprivateMX.jks", "pwd123", "MEX2014", "MEXICOcert");
-		
-		key =UtilShared.getPrivateKey("pem", System.getProperty("user.dir")+"/Keystore/serverfile/fatcaone_private_key.pem", "pwd123", "CAN2014", "USCert");
-		cert = UtilShared.getCert("crt", System.getProperty("user.dir")+"/Keystore/Canada_PrepTool/DigiCertCA.crt", "pwd123", "USCert");
+		*/
+		key =UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/newcert/star_fatcaone_com.jks", "PQve34%10", "PQve34%10", "server");
+		cert = UtilShared.getCert("jks", System.getProperty("user.dir")+"/Keystore/newcert/star_fatcaone_com.jks", "PQve34%10", "server");
 	}
 	
 	public static void main(String[] args) throws Exception {
 		logger.debug("test");
 		System.out.println(System.getProperty("user.dir"));
-		String canadaXml = System.getProperty("user.dir")+"/C34VPZ.00000.SP.840_Payload.xml";
-		String signedCanadaXml = canadaXml + ".signed";
+		String xml = System.getProperty("user.dir")+"/C34VPZ.00000.SP.840_Payload.xml";
+		String signedXml = xml + ".signed";
 		
 		FATCAPackager.isCanonicalization = false;
 		
 		SendFatcaMain m = new SendFatcaMain();
 		
-		m.signer.signStreaming(canadaXml, signedCanadaXml, m.canadaSigKey, m.canadaPubCert);
-		m.signer.signDOM(canadaXml, signedCanadaXml, m.canadaSigKey, m.canadaPubCert);
+		m.signer.signStreaming(xml, signedXml, m.key, m.cert);
+		m.signer.signDOM(xml, signedXml, m.key, m.cert);
 		
-		String idesOutFile = m.pkger.createPkg(signedCanadaXml, m.canadaGiin, m.usaGiin, m.usaCert, 2014);
+		String idesOutFile = m.pkger.createPkg(signedXml, m.senderGIIN, m.reciverGIIN, m.cert, 2014);
 		logger.debug(idesOutFile);
 
-		m.pkger.unpack(idesOutFile, m.usaPrivateKey);
+		m.pkger.unpack(idesOutFile, m.key);
 		
-		idesOutFile = m.pkger.createPkgWithApprover(signedCanadaXml, m.canadaGiin, m.usaGiin, m.usaCert, m.mexicoGiin, m.mexicoPubCert, 2014);
+		/*idesOutFile = m.pkger.createPkgWithApprover(signedXml, m.senderGIIN, m.usaGiin, m.cert, m.reciverGIIN, m.cert, 2014);
 		logger.debug(idesOutFile);
 
-		m.pkger.unpackForApprover(idesOutFile, m.mexicoPrivateKey);
+		m.pkger.unpackForApprover(idesOutFile, m.key);
 		
-		idesOutFile = m.pkger.signAndCreatePkg(canadaXml, m.canadaSigKey, m.canadaPubCert, m.canadaGiin, m.usaGiin, m.usaCert, 2014);
+		idesOutFile = m.pkger.signAndCreatePkg(xml, m.key, m.cert, m.reciverGIIN, m.usaGiin, m.cert, 2014);
 		logger.debug(idesOutFile);
 
-		m.pkger.unpack(idesOutFile, m.usaPrivateKey);
+		m.pkger.unpack(idesOutFile, m.key);
 		
-		idesOutFile = m.pkger.signAndCreatePkgWithApprover(canadaXml, m.canadaSigKey, m.canadaPubCert, m.canadaGiin, m.usaGiin, m.usaCert, m.mexicoGiin, m.mexicoPubCert, 2014);
+		idesOutFile = m.pkger.signAndCreatePkgWithApprover(xml, m.key, m.cert, m.senderGIIN, m.usaGiin, m.cert, m.reciverGIIN, m.cert, 2014);
 		logger.debug(idesOutFile);
 	
-		m.pkger.unpackForApprover(idesOutFile, m.mexicoPrivateKey);
+		m.pkger.unpackForApprover(idesOutFile, m.key);*/
 		
 		
 		//String idesOutFile = m.pkger.signAndCreatePkgWithApprover(canadaXml, m.usaPrivateKey, m.usaCert, m.senderGIIN, m.reciverGIIN, m.usaCert, m.reciverGIIN, m.usaCert, 2015);
@@ -119,7 +119,7 @@ public class SendFatcaMain {
 	            System.out.println("sftp channel opened and connected.");
 	            channelSftp = (ChannelSftp) channel;
 	            channelSftp.cd(SFTPWORKINGDIR);
-	            File f = new File(System.getProperty("user.dir")+"/"+"20150505T213638713Z_000000.00000.TA.124.zip");
+	            File f = new File(System.getProperty("user.dir")+"/"+idesOutFile);
 	            channelSftp.put(new FileInputStream(f), f.getName());
 	           System.out.println("File transfered successfully to host.");
 	        } catch (Exception ex) {
