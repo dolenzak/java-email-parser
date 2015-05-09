@@ -1,0 +1,50 @@
+<ftc:FATCA_OECD xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ftc="urn:oecd:ties:fatca:v1" xmlns:sfa="urn:oecd:ties:stffatcatypes:v1" version="1.1" xsi:schemaLocation="urn:oecd:ties:fatca:v1 FatcaXML_v1.1.xsd">
+	<ftc:MessageSpec>
+		<sfa:SendingCompanyIN>C34VPZ.00000.SP.840</sfa:SendingCompanyIN>
+		<sfa:TransmittingCountry>US</sfa:TransmittingCountry>
+		<sfa:ReceivingCountry>US</sfa:ReceivingCountry>
+		<sfa:MessageType>FATCA</sfa:MessageType>
+		<sfa:Warning/>
+		<sfa:MessageRefId>50B80D2D-79DA-4AFD-8148-F06480FFDEB5shit</sfa:MessageRefId>
+		<sfa:ReportingPeriod>2014-12-31</sfa:ReportingPeriod> 
+		<sfa:Timestamp>2015-06-17T09:30:47Z</sfa:Timestamp>
+	</ftc:MessageSpec>
+	<ftc:FATCA> 
+		<ftc:ReportingFI>
+		<sfa:ResCountryCode>US</sfa:ResCountryCode>
+		<sfa:TIN>46-5297306</sfa:TIN>
+		<sfa:Name>Transworld Compliance Inc.</sfa:Name>
+		<sfa:Address>
+			<sfa:CountryCode>US</sfa:CountryCode>
+			<sfa:AddressFree>1829 Greenplace Terrace, Rockville, MD 20850</sfa:AddressFree>
+		</sfa:Address>
+		<ftc:DocSpec>
+			<ftc:DocTypeIndic>FATCA11</ftc:DocTypeIndic> 
+			<ftc:DocRefId>50B80D2D79DA4AFD8148F06480FFDEB5shit</ftc:DocRefId>
+		</ftc:DocSpec>
+		</ftc:ReportingFI>
+		<ftc:ReportingGroup>
+			<ftc:AccountReport>
+				<ftc:DocSpec>
+					<ftc:DocTypeIndic>FATCA11</ftc:DocTypeIndic>
+					<ftc:DocRefId>50B80D2D-79DA-4AFD-8148-F06480FFDEB5shit</ftc:DocRefId>
+				</ftc:DocSpec>
+				<ftc:AccountNumber>1341244</ftc:AccountNumber>
+				<ftc:AccountHolder> 
+					<ftc:Individual>
+						<sfa:ResCountryCode></sfa:ResCountryCode>
+						<sfa:TIN></sfa:TIN>
+						<sfa:Name>Arthur T. Blackstone</sfa:Name>
+						<sfa:Address>
+							<sfa:CountryCode></sfa:CountryCode>
+							<sfa:AddressFree>1 place des droits de lhomme</sfa:AddressFree>
+						</sfa:Address>
+						<sfa:Nationality>FR</sfa:Nationality>	
+					</ftc:Individual>
+				</ftc:AccountHolder>
+				<ftc:AccountBalance currCode="EUR">44892.49</ftc:AccountBalance>
+			</ftc:AccountReport>
+		</ftc:ReportingGroup>
+	</ftc:FATCA>
+</ftc:FATCA_OECD>
+
