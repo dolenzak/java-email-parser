@@ -1,4 +1,4 @@
-package fatca;
+package com.twc.fatcaone.fatca;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -43,8 +43,8 @@ import org.apache.log4j.Logger;
 
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
 
-import fatca.idessenderfilemetadata.FATCAEntCommunicationTypeCdType;
-import fatca.idessenderfilemetadata.FATCAIDESSenderFileMetadataType;
+import com.twc.fatcaone.fatca.idessenderfilemetadata.FATCAEntCommunicationTypeCdType;
+import com.twc.fatcaone.fatca.idessenderfilemetadata.FATCAIDESSenderFileMetadataType;
 
 public class FATCAPackager {
 	public static String AES_TRANSFORMATION = "AES/ECB/PKCS5Padding";
@@ -61,7 +61,7 @@ public class FATCAPackager {
 
 	protected FATCAXmlSigner signer = new FATCAXmlSigner();
 	protected Long fileId = 0L;
-	protected fatca.idessenderfilemetadata.ObjectFactory objFMetadata = new fatca.idessenderfilemetadata.ObjectFactory();
+	protected com.twc.fatcaone.fatca.idessenderfilemetadata.ObjectFactory objFMetadata = new com.twc.fatcaone.fatca.idessenderfilemetadata.ObjectFactory();
 	protected SimpleDateFormat sdfFileName = new SimpleDateFormat("yyyyMMdd'T'HHmmssSSS'Z'");
 	protected SimpleDateFormat sdfFileCreateTs = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	

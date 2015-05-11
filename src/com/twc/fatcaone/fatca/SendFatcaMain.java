@@ -1,4 +1,4 @@
-package fatca;
+package com.twc.fatcaone.fatca;
 
 import java.io.DataInputStream;
 import java.io.File;
@@ -15,10 +15,10 @@ import java.security.spec.PKCS8EncodedKeySpec;
 
 import org.apache.log4j.Logger;
 
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
+import com.mongodb.DB;
+import com.twc.fatcaone.service.DataBaseConnection;
+import com.twc.fatcaone.service.FileTransfer;
+import com.twc.fatcaone.service.ReadFile;
 
 
 public class SendFatcaMain {
@@ -71,7 +71,43 @@ public class SendFatcaMain {
 	public static void main(String[] args) throws Exception {
 		logger.debug("test");
 		System.out.println(System.getProperty("user.dir"));
-		String xml = System.getProperty("user.dir")+"/individual1428648739278ns2.xml";
+		
+		
+		//Database Connection
+		/*MongoClientURI uri  = new MongoClientURI("mongodb://localhost:27017/twcdb"); 
+        MongoClient client = new MongoClient(uri);
+        DB db = client.getDB(uri.getDatabase());
+        boolean auth = db.authenticate(myUserName, myPassword);*/
+		
+		
+		
+		DB db = new DataBaseConnection().dbConnection();
+        
+		
+		
+        //Get the File Path From MongoDB
+        File[] xmlFiles=new ReadFile().getFiles(db,"fatcaFile","US","xml");
+        
+        for (File sendXmlFiles : xmlFiles) {
+        	String signedXml = sendXmlFiles + ".signed";
+        	FATCAPackager.isCanonicalization = false;
+        	String certFile=new ReadFile().getKeyFile(db,"fatcaFile","US","crt");
+        	String keyFile=new ReadFile().getKeyFile(db,"fatcaFile","US","key");
+        	X509Certificate cert=loadPublicX509(certFile);
+    		PrivateKey key=getPemPrivateKey(keyFile);
+    		SendFatcaMain m = new SendFatcaMain();
+    		m.signer.signStreaming(sendXmlFiles.toString(), signedXml, key, cert);
+    		m.signer.signDOM(sendXmlFiles.toString(), signedXml, key, cert);
+    		
+    		String idesOutFile = m.pkger.createPkg(signedXml, m.senderGIIN, m.reciverGIIN, cert, 2014);
+    		// Transfer File Using SFTP
+            new FileTransfer().sftpFileTransfer(idesOutFile,db);
+        	if(new File(signedXml).exists()){
+        		new File(signedXml).delete();
+        	}
+        	
+		}
+		/*String xml = System.getProperty("user.dir")+"/individual1428648739278ns2.xml";
 		String signedXml = xml + ".signed";
 		
 		FATCAPackager.isCanonicalization = false;
@@ -82,7 +118,7 @@ public class SendFatcaMain {
 		m.signer.signDOM(xml, signedXml, key, cert);
 		
 		String idesOutFile = m.pkger.createPkg(signedXml, m.senderGIIN, m.reciverGIIN, cert, 2014);
-		logger.debug(idesOutFile);
+		logger.debug(idesOutFile);*/
 
 		//m.pkger.unpack(idesOutFile, key);
 		
@@ -103,10 +139,10 @@ public class SendFatcaMain {
 		
 		
 		//String idesOutFile = m.pkger.signAndCreatePkgWithApprover(canadaXml, m.usaPrivateKey, m.usaCert, m.senderGIIN, m.reciverGIIN, m.usaCert, m.reciverGIIN, m.usaCert, 2015);
-		System.out.println("============ Test =========="+idesOutFile);
+		//System.out.println("============ Test =========="+idesOutFile);
 		
 		// Transfer File Using SFTP
-			String SFTPHOST = "54.172.126.52";
+			/*String SFTPHOST = "54.172.126.52";
 	        int SFTPPORT = 4022;
 	        String SFTPUSER = "dolenzak";
 	        String SFTPPASS = "TWCfatca1!";
@@ -144,7 +180,7 @@ public class SendFatcaMain {
 	            System.out.println("Channel disconnected.");
 	            session.disconnect();
 	            System.out.println("Host Session disconnected.");
-	        }
+	        }*/
 	}
 	
 	/*public static PrivateKey loadPrivateKey(String fileName) 
@@ -228,5 +264,6 @@ public class SendFatcaMain {
 	    if (is == null) return;
 	    try { is.close(); } catch (Exception ign) {}
 	}
+	
 	}
 

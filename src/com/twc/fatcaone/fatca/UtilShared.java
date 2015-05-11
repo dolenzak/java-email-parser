@@ -1,4 +1,4 @@
-package fatca;
+package com.twc.fatcaone.fatca;
 
 import java.io.File;
 import java.io.FileInputStream;

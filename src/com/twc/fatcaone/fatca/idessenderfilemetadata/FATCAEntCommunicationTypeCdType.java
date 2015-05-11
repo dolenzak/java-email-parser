@@ -6,7 +6,7 @@
 //
 
 
-package fatca.idessenderfilemetadata;
+package com.twc.fatcaone.fatca.idessenderfilemetadata;
 
 import javax.xml.bind.annotation.XmlEnum;
 import javax.xml.bind.annotation.XmlType;

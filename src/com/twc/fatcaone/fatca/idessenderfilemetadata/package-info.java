@@ -6,4 +6,4 @@
 //
 
 @javax.xml.bind.annotation.XmlSchema(namespace = "urn:fatca:idessenderfilemetadata", elementFormDefault = javax.xml.bind.annotation.XmlNsForm.QUALIFIED)
-package fatca.idessenderfilemetadata;
+package com.twc.fatcaone.fatca.idessenderfilemetadata;

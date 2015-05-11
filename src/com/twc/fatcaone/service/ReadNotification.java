@@ -39,6 +39,7 @@ public class ReadNotification {
 		MongoClientURI uri  = new MongoClientURI("mongodb://localhost:27017/twcdb"); 
         MongoClient client = new MongoClient(uri);
         DB db = client.getDB(uri.getDatabase());
+        //boolean auth = db.authenticate(myUserName, myPassword);
         DBCollection collection = null;
         DBObject document = null;
         
