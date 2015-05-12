@@ -11,7 +11,8 @@ import com.mongodb.DB;
 
 public class FileTransfer {
 
-	 public void sftpFileTransfer(String fileName,DB db){
+	 public boolean sftpFileTransfer(String fileName,DB db){
+		 boolean fileTransfer=false;
 		    String SFTPHOST = "54.172.126.52";
 	        int SFTPPORT = 4022;
 	        String SFTPUSER = "dolenzak";
@@ -38,6 +39,7 @@ public class FileTransfer {
 	            channelSftp.cd(SFTPWORKINGDIR);
 	            File f = new File(System.getProperty("user.dir")+"/"+fileName);
 	            channelSftp.put(new FileInputStream(f), f.getName());
+	            fileTransfer = true;
 	           System.out.println("File transfered successfully to host.");
 	        } catch (Exception ex) {
 	             System.out.println("Exception found while tranfer the response.");
@@ -51,5 +53,6 @@ public class FileTransfer {
 	            session.disconnect();
 	            System.out.println("Host Session disconnected.");
 	        }
+	        return fileTransfer;
 	 }
 }

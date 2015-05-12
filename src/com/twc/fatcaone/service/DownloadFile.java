@@ -1,5 +1,6 @@
 package com.twc.fatcaone.service;
 
+import java.io.File;
 import java.util.Vector;
 
 import com.jcraft.jsch.Channel;
@@ -11,19 +12,16 @@ import com.jcraft.jsch.SftpException;
 
 public class DownloadFile {
 
-	public static void main(String[] args) {
-		String SFTPHOST = "cayman.fatcaone.com";
-        int SFTPPORT = 22;
-        String SFTPUSER = "dolenzak";
-        String SFTPPASS = "Welcome123!";
-        String SFTPWORKINGDIR = "/home/dolenzak/clean/ky2us";
-
+	public String downloadFile(String host,int port,String username, String password, String filePath,String fileFormat,String fileType) {
         Session session = null;
         Channel channel = null;
+        String homeDirectory = System.getProperty("user.home");
+        String localDownloadRootDir = homeDirectory+File.separatorChar+host;
+        String localDownloadDir = localDownloadRootDir+File.separatorChar+fileType;
 		try {
 			JSch jsch = new JSch();
-            session = jsch.getSession(SFTPUSER, SFTPHOST, SFTPPORT);
-            session.setPassword(SFTPPASS);
+            session = jsch.getSession(username, host, port);
+            session.setPassword(password);
             java.util.Properties config = new java.util.Properties();
             config.put("StrictHostKeyChecking", "no");
             session.setConfig(config);
@@ -41,9 +39,16 @@ public class DownloadFile {
             int grabCount=0;
             try {   
                 ChannelSftp c = (ChannelSftp) channel;  
-                c.cd(SFTPWORKINGDIR);
-                String localDir = "/home/hacker/Desktop/js";
-				c.lcd(localDir );
+                c.cd(filePath);
+                File rootPath = new File(localDownloadRootDir); 
+                File downloadPath = new File(localDownloadDir);
+                if(!rootPath.exists()){
+                	rootPath.mkdir();
+                }
+                if(!downloadPath.exists()){
+                	downloadPath.mkdir();
+                }
+				c.lcd(localDownloadDir);
                 System.out.println("lcd " + c.lpwd());
                 
                 // Get a listing of the remote directory
@@ -54,7 +59,7 @@ public class DownloadFile {
                 for (ChannelSftp.LsEntry oListItem : list) {
                     // output each item from directory listing for logs
                      
-                    if(oListItem.getFilename().contains(".xml")){
+                    if(oListItem.getFilename().contains(fileFormat)){
                     	System.out.println(oListItem.toString());
                     // If it is a file (not a directory)
                     if (!oListItem.getAttrs().isDir()) {
@@ -87,6 +92,7 @@ public class DownloadFile {
                 System.out.println("Session Closed");
             }
 	}
+		return localDownloadDir;
 
 }
 }

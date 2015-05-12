@@ -15,7 +15,11 @@ import java.security.spec.PKCS8EncodedKeySpec;
 
 import org.apache.log4j.Logger;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.twc.fatcaone.service.DataBaseConnection;
 import com.twc.fatcaone.service.FileTransfer;
 import com.twc.fatcaone.service.ReadFile;
@@ -55,179 +59,57 @@ public class SendFatcaMain {
 	public SendFatcaMain() throws Exception{
 		signer = new FATCAXmlSigner();
 		pkger = new FATCAPackager();
-		/*canadaSigKey = UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/Canada_PrepTool/KSprivateCA.jks", "pwd123", "CAN2014", "CANADAcert");
-		canadaPubCert = UtilShared.getCert("jks", System.getProperty("user.dir")+"/Keystore/Canada_PrepTool/KSpublicCA.jks", "pwd123", "CANADAcert");
-		usaCert = UtilShared.getCert("jks", System.getProperty("user.dir")+"/Keystore/IRS_PrepTool/KSpublicUS.jks", "pwd123", "IRScert");
-		mexicoPubCert = UtilShared.getCert("jks", System.getProperty("user.dir")+"/Keystore/Mexico_PrepTool/KSpublicMX.jks", "pwd123", "MEXICOcert");
-		usaPrivateKey = UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/IRS_PrepTool/KSprivateUS.jks", "pwd123", "password", "IRScert");
-		mexicoPrivateKey = UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/Mexico_PrepTool/KSprivateMX.jks", "pwd123", "MEX2014", "MEXICOcert");
-		*/
-		//key =UtilShared.getPrivateKey("jks", System.getProperty("user.dir")+"/Keystore/newcert/star_fatcaone_com.jks", "PQve34%10", "PQve34%10", "server");
-		//cert = UtilShared.getCert("jks", System.getProperty("user.dir")+"/Keystore/newcert/star_fatcaone_com.jks", "PQve34%10", "server");
-		//key =getPemPrivateKey("/home/hacker/EDI/TWC/fatcaone_private_key.der","RSA");
-		//cert = 
 	}
 	
 	public static void main(String[] args) throws Exception {
-		logger.debug("test");
-		System.out.println(System.getProperty("user.dir"));
-		
-		
+		String collectionName="fatcaFile";
 		//Database Connection
-		/*MongoClientURI uri  = new MongoClientURI("mongodb://localhost:27017/twcdb"); 
-        MongoClient client = new MongoClient(uri);
-        DB db = client.getDB(uri.getDatabase());
-        boolean auth = db.authenticate(myUserName, myPassword);*/
-		
-		
-		
 		DB db = new DataBaseConnection().dbConnection();
-        
 		
+		//Get All XML Country Code 
+		DBCollection collection = db.getCollection(collectionName);
+		DBObject document = new BasicDBObject();
+		document.put("country","FR");
+		document.put("fileType","xml");
+        DBCursor cursor = collection.find(document);
 		
-        //Get the File Path From MongoDB
-        File[] xmlFiles=new ReadFile().getFiles(db,"fatcaFile","US","xml");
-        
+        while(cursor.hasNext()) {
+        	DBObject dbObject = cursor.next();
+        	String countryCode = dbObject.get("country").toString();
+        	String hostName = dbObject.get("ipAddress").toString();
+        	//Get the File Path From MongoDB
+        	File[] xmlFiles=new ReadFile().getFiles(db,collectionName,hostName,countryCode,"xml");
+        	File[] certFile=new ReadFile().getFiles(db,collectionName,hostName,countryCode,"crt");
+        	File[] keyFile=new ReadFile().getFiles(db,collectionName,hostName,countryCode,"key");
+        //File Processing
         for (File sendXmlFiles : xmlFiles) {
         	String signedXml = sendXmlFiles + ".signed";
         	FATCAPackager.isCanonicalization = false;
-        	String certFile=new ReadFile().getKeyFile(db,"fatcaFile","US","crt");
-        	String keyFile=new ReadFile().getKeyFile(db,"fatcaFile","US","key");
-        	X509Certificate cert=loadPublicX509(certFile);
-    		PrivateKey key=getPemPrivateKey(keyFile);
+        	X509Certificate cert=loadPublicX509(certFile[0]);
+    		PrivateKey key=getPemPrivateKey(keyFile[0]);
     		SendFatcaMain m = new SendFatcaMain();
     		m.signer.signStreaming(sendXmlFiles.toString(), signedXml, key, cert);
     		m.signer.signDOM(sendXmlFiles.toString(), signedXml, key, cert);
     		
     		String idesOutFile = m.pkger.createPkg(signedXml, m.senderGIIN, m.reciverGIIN, cert, 2014);
     		// Transfer File Using SFTP
-            new FileTransfer().sftpFileTransfer(idesOutFile,db);
-        	if(new File(signedXml).exists()){
-        		new File(signedXml).delete();
-        	}
-        	
+            boolean fileTransfered =new FileTransfer().sftpFileTransfer(idesOutFile,db);
+            
+            //After Transfer the File Remove .zip file, .xml file and signed xml file
+            new File(signedXml).deleteOnExit();
+            new File(idesOutFile).deleteOnExit();
+            if(fileTransfered){
+            sendXmlFiles.deleteOnExit();
+            }
 		}
-		/*String xml = System.getProperty("user.dir")+"/individual1428648739278ns2.xml";
-		String signedXml = xml + ".signed";
-		
-		FATCAPackager.isCanonicalization = false;
-		X509Certificate cert=loadPublicX509(System.getProperty("user.dir")+"/Keystore/newcert/irspublickey.der");
-		PrivateKey key=getPemPrivateKey(System.getProperty("user.dir")+"/Keystore/serverfile/fatcaone_private_key.der");
-		SendFatcaMain m = new SendFatcaMain();
-		m.signer.signStreaming(xml, signedXml, key, cert);
-		m.signer.signDOM(xml, signedXml, key, cert);
-		
-		String idesOutFile = m.pkger.createPkg(signedXml, m.senderGIIN, m.reciverGIIN, cert, 2014);
-		logger.debug(idesOutFile);*/
-
-		//m.pkger.unpack(idesOutFile, key);
-		
-		/*idesOutFile = m.pkger.createPkgWithApprover(signedXml, m.senderGIIN, m.usaGiin, m.cert, m.reciverGIIN, m.cert, 2014);
-		logger.debug(idesOutFile);
-
-		m.pkger.unpackForApprover(idesOutFile, m.key);
-		
-		idesOutFile = m.pkger.signAndCreatePkg(xml, m.key, m.cert, m.reciverGIIN, m.usaGiin, m.cert, 2014);
-		logger.debug(idesOutFile);
-
-		m.pkger.unpack(idesOutFile, m.key);
-		
-		idesOutFile = m.pkger.signAndCreatePkgWithApprover(xml, m.key, m.cert, m.senderGIIN, m.usaGiin, m.cert, m.reciverGIIN, m.cert, 2014);
-		logger.debug(idesOutFile);
-	
-		m.pkger.unpackForApprover(idesOutFile, m.key);*/
-		
-		
-		//String idesOutFile = m.pkger.signAndCreatePkgWithApprover(canadaXml, m.usaPrivateKey, m.usaCert, m.senderGIIN, m.reciverGIIN, m.usaCert, m.reciverGIIN, m.usaCert, 2015);
-		//System.out.println("============ Test =========="+idesOutFile);
-		
-		// Transfer File Using SFTP
-			/*String SFTPHOST = "54.172.126.52";
-	        int SFTPPORT = 4022;
-	        String SFTPUSER = "dolenzak";
-	        String SFTPPASS = "TWCfatca1!";
-	        String SFTPWORKINGDIR = "/Outbox/840";
-
-	        Session session = null;
-	        Channel channel = null;
-	        ChannelSftp channelSftp = null;
-	        System.out.println("preparing the host information for sftp.");
-	        try {
-	            JSch jsch = new JSch();
-	            session = jsch.getSession(SFTPUSER, SFTPHOST, SFTPPORT);
-	            session.setPassword(SFTPPASS);
-	            java.util.Properties config = new java.util.Properties();
-	            config.put("StrictHostKeyChecking", "no");
-	            session.setConfig(config);
-	            session.connect();
-	            System.out.println("Host connected.");
-	            channel = session.openChannel("sftp");
-	            channel.connect();
-	            System.out.println("sftp channel opened and connected.");
-	            channelSftp = (ChannelSftp) channel;
-	            channelSftp.cd(SFTPWORKINGDIR);
-	            File f = new File(System.getProperty("user.dir")+"/"+idesOutFile);
-	            channelSftp.put(new FileInputStream(f), f.getName());
-	           System.out.println("File transfered successfully to host.");
-	        } catch (Exception ex) {
-	             System.out.println("Exception found while tranfer the response.");
-	        }
-	        finally{
-
-	            channelSftp.exit();
-	            System.out.println("sftp Channel exited.");
-	            channel.disconnect();
-	            System.out.println("Channel disconnected.");
-	            session.disconnect();
-	            System.out.println("Host Session disconnected.");
-	        }*/
+       }
 	}
 	
-	/*public static PrivateKey loadPrivateKey(String fileName) 
-	        throws IOException, GeneralSecurityException {
-	    PrivateKey key = null;
-	    InputStream is = null;
-	    try {
-	        //is = fileName.getClass().getResourceAsStream("/" + fileName);
-	    	is = new FileInputStream(fileName);
-	        BufferedReader br = new BufferedReader(new InputStreamReader(is));
-	        StringBuilder builder = new StringBuilder();
-	        boolean inKey = true;
- 	        for (String line = br.readLine(); line != null; line = br.readLine()) {
-	            if (!inKey) {
-	                if (line.startsWith("-----BEGIN ")) {
-	                    inKey = true;
-	                }
-	                continue;
-	            }
-	            else {
-	                if (line.startsWith("-----END ")) {
-	                    inKey = false;
-	                    break;
-	                }
-	                builder.append(line);
-	            }
-	        }
-	        //
-	        byte[] encoded = DatatypeConverter.parseBase64Binary(builder.toString());
-	        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
-	        KeyFactory kf = KeyFactory.getInstance("RSA");
-	        key = kf.generatePrivate(keySpec);
-	    } finally {
-	        closeSilent(is);
-	    }
-	    return key;
-	}
-	public static void closeSilent(final InputStream is) {
-	    if (is == null) return;
-	    try { is.close(); } catch (Exception ign) {}
-	}*/
-	
-	   public  static PrivateKey getPemPrivateKey(String filename) throws Exception {
-		      File f = new File(filename);
-		      FileInputStream fis = new FileInputStream(f);
+	//Get The Private key from der file
+	public  static PrivateKey getPemPrivateKey(File keyFile) throws Exception {
+		      FileInputStream fis = new FileInputStream(keyFile);
 		      DataInputStream dis = new DataInputStream(fis);
-		      byte[] keyBytes = new byte[(int) f.length()];
+		      byte[] keyBytes = new byte[(int) keyFile.length()];
 		      dis.readFully(keyBytes);
 		      dis.close();
 
@@ -235,8 +117,8 @@ public class SendFatcaMain {
 		      String privKeyPEM = temp.replace("-----BEGIN RSA PRIVATE KEY-----\n", "");
 		      privKeyPEM = privKeyPEM.replace("-----END RSA PRIVATE KEY-----", "");
 		      
-		      	dis = new DataInputStream(new FileInputStream(f));
-	            byte[] privKeyBytes = new byte[(int)f.length()];
+		      	dis = new DataInputStream(new FileInputStream(keyFile));
+	            byte[] privKeyBytes = new byte[(int)keyFile.length()];
 	            dis.read(privKeyBytes);
 	            dis.close();
 	            PKCS8EncodedKeySpec privSpec = new PKCS8EncodedKeySpec(privKeyBytes);
@@ -246,13 +128,14 @@ public class SendFatcaMain {
 	            RSAPublicKey pubKey = (RSAPublicKey) keyFactory.generatePublic(pubSpec);*/
 	            return privKey;
 		      }
-	public static X509Certificate loadPublicX509(String fileName) 
+	
+	//Get the Certificate from der file/public key file
+	public static X509Certificate loadPublicX509(File certificateFile) 
 	        throws GeneralSecurityException, FileNotFoundException {
 	    InputStream is = null;
 	    X509Certificate crt = null;
 	    try {
-	    	File f = new File(fileName);
-	        is = new FileInputStream(f);
+	        is = new FileInputStream(certificateFile);
 	        CertificateFactory cf = CertificateFactory.getInstance("X.509");
 	        crt = (X509Certificate)cf.generateCertificate(is);
 	    } finally {
