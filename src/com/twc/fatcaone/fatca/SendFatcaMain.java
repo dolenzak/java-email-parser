@@ -69,7 +69,6 @@ public class SendFatcaMain {
 		//Get All XML Country Code 
 		DBCollection collection = db.getCollection(collectionName);
 		DBObject document = new BasicDBObject();
-		document.put("country","FR");
 		document.put("fileType","xml");
         DBCursor cursor = collection.find(document);
 		
