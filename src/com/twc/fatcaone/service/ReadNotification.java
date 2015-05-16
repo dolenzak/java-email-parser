@@ -6,11 +6,20 @@ import java.net.UnknownHostException;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
+import com.mongodb.Mongo;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.twc.fatcaone.notification.FATCAFileErrorNotificationType;
@@ -22,61 +31,159 @@ import com.twc.fatcaone.notification.OriginalFileMetadataGrpType;
 public class ReadNotification {
 	
 	public static void main(String a[]){
-	try {
-	JAXBContext jc = JAXBContext.newInstance(FATCAFileErrorNotificationType.class);
-    Unmarshaller unmarshaller = jc.createUnmarshaller();
-    File xml = new File("/home/hacker/Music/FileErrorNotificationSample.xml");
-    FATCAFileErrorNotificationType fatcaFileErrorNotificationType = (FATCAFileErrorNotificationType) unmarshaller.unmarshal(xml);
-	System.out.println(fatcaFileErrorNotificationType.getFATCANotificationHeaderGrp().getFATCANotificationRefId());
-	System.out.println(fatcaFileErrorNotificationType.getFATCANotificationHeaderGrp().getFATCANotificationCd());
-	System.out.println(fatcaFileErrorNotificationType.getFATCANotificationHeaderGrp().getFATCAEntitySenderId());
-	System.out.println(fatcaFileErrorNotificationType.getFATCANotificationHeaderGrp().getFATCAEntityReceiverId());
-	try {
-		/*MongoClient mongo = new MongoClient("localhost", 27017);
-		DB db = mongo.getDB("twcdb");
-		DBCollection col = db.getCollection("message");*/
-		//MongoClientURI uri  = new MongoClientURI("mongodb://user:pass@host:port/db"); 
-		MongoClientURI uri  = new MongoClientURI("mongodb://localhost:27017/twcdb"); 
-        MongoClient client = new MongoClient(uri);
-        DB db = client.getDB(uri.getDatabase());
-        //boolean auth = db.authenticate(myUserName, myPassword);
-        DBCollection collection = null;
-        DBObject document = null;
-        
-        // Save FATCA Notification Header Group data in TWC database
-        collection = db.getCollection("fatcanotificationheader");
-        document = new BasicDBObject();
-        FATCANotificationHeaderGrpType fatcaNotificationHeaderGrpType = fatcaFileErrorNotificationType.getFATCANotificationHeaderGrp();
-        document.put("refId",fatcaNotificationHeaderGrpType.getFATCANotificationRefId());
-        document.put("senderId", fatcaNotificationHeaderGrpType.getFATCAEntitySenderId());
-        document.put("receiverId", fatcaNotificationHeaderGrpType.getFATCAEntityReceiverId());
-        document.put("notificationCode",fatcaNotificationHeaderGrpType.getFATCANotificationCd().toString());
-        document.put("copiedToFATCAEntityId", fatcaNotificationHeaderGrpType.getCopiedToFATCAEntityId());
-        document.put("contactInformationTxt", fatcaNotificationHeaderGrpType.getContactInformationTxt());
-        document.put("createTime", fatcaNotificationHeaderGrpType.getFATCANotificationCreateTs());
-        collection.save(document);
-        
-        //Save original File Metadata Group data in TWC database
-        collection = db.getCollection("fatcanotificationheader");
-        document = new BasicDBObject();
-        OriginalFileMetadataGrpType originalFileMetadataGrpType =  fatcaFileErrorNotificationType.getOriginalFileMetadataGrp();
-        document.put("idesTransmissionId", originalFileMetadataGrpType.getIDESTransmissionId());
-        document.put("idesSendingTime", originalFileMetadataGrpType.getIDESSendingTs());
-        document.put("originalIDESTransmissionId", originalFileMetadataGrpType.getOriginalIDESTransmissionId());
-        document.put("senderFileId", originalFileMetadataGrpType.getSenderFileId());
-        document.put("uncompressedFileSizeKBQty", originalFileMetadataGrpType.getUncompressedFileSizeKBQty());
-        collection.save(document);
+try{
+    //Database Connection
+  	DB db = new DataBaseConnection().dbConnection();
+  	DBCollection collection = null;
+  	DBObject document  = null;
+  	collection =db.getCollection("fatcaFile");
+	document = new BasicDBObject();
+	document.put("fileType", "zip");
+	DBCursor cursor=collection.find(document);
+	String collectionName="icmmMessageNotification";
+    //Save FATCA Notification Header Group data in TWC database
+	collection = db.getCollection(collectionName);
+	 while(cursor.hasNext()) {
+		 DBObject dbObject = cursor.next();
+     	String countryCode = dbObject.get("country").toString();
+     	String hostName = dbObject.get("ipAddress").toString();
+		 File[] xmlFiles=new ReadFile().getFiles(db,"fatcaFile",hostName,countryCode,"zip");
+		 for (File notificationXmlFile : xmlFiles) {
+			 if(parseXml(notificationXmlFile,collection)){
+				 if(notificationXmlFile.exists()){
+					 notificationXmlFile.delete();
+				 }
+			 }
+	 }
+	 }
+	}catch(Exception e){
+		System.out.println("Read Notification Exception : "+e);
+	}
+}
+	
+	public static boolean parseXml(File notificationXml,DBCollection collection){
+				boolean parsedXml= false;
+		try {
+			  DBObject document = new BasicDBObject("_id",collection.count()+1);
+			  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			  DocumentBuilder db = dbf.newDocumentBuilder();
+			  Document doc = db.parse(notificationXml);
+			  doc.getDocumentElement().normalize();
+			  NodeList notificationHeaderGrp = doc.getElementsByTagName("FATCANotificationHeaderGrp");
+			  NodeList originalFileMetadataGrp = doc.getElementsByTagName("OriginalFileMetadataGrp");
+			  NodeList actionRequestedGrp = doc.getElementsByTagName("ActionRequestedGrp");
+			  NodeList notificationContent = doc.getElementsByTagName("NotificationContentTxt");
+			  NodeList createDate=null,notificationRefId=null,senderId=null,idesTransmissionId=null,idesSendingDate=null,senderFileId=null,actionRequested=null,actionRequestedDueDate=null,notification=null;
+			  //for (int s = 0; s < notificationHeaderGrp.getLength(); s++) {
 
-        
-        
-		client.close();
-	} catch (UnknownHostException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
-	} catch (JAXBException e) {
-		// TODO Auto-generated catch block
-		e.printStackTrace();
-	}
+			    Node fstNode = notificationHeaderGrp.item(0);
+			    
+			    if (fstNode!=null && fstNode.getNodeType() == Node.ELEMENT_NODE) {
+			  
+			      Element fstElmnt = (Element) fstNode;
+			      
+			      NodeList fstNmElmntLst = fstElmnt.getElementsByTagName("FATCANotificationCreateTs");
+			      if(fstNmElmntLst!=null && fstNmElmntLst.getLength()>0){
+			      Element fstNmElmnt = (Element) fstNmElmntLst.item(0);
+			      createDate = fstNmElmnt.getChildNodes();
+			      }
+			      NodeList secNmElmntLst = fstElmnt.getElementsByTagName("FATCANotificationRefId");
+			      if(secNmElmntLst!=null && secNmElmntLst.getLength()>0){
+			      Element secNmElmnt = (Element) secNmElmntLst.item(0);
+			      notificationRefId = secNmElmnt.getChildNodes();
+			      }
+			      NodeList thNmElmntLst = fstElmnt.getElementsByTagName("FATCAEntitySenderId");
+			      if(thNmElmntLst!=null && thNmElmntLst.getLength()>0){
+			      Element thNmElmnt = (Element) thNmElmntLst.item(0);
+			      senderId = thNmElmnt.getChildNodes();
+			    }
+			    }
+			  //}
+			  //for (int s = 0; s < originalFileMetadataGrp.getLength(); s++) {
+
+				     fstNode = originalFileMetadataGrp.item(0);
+				    
+				    if (fstNode!=null &&  fstNode.getNodeType() == Node.ELEMENT_NODE) {
+				  
+				      Element fstElmnt = (Element) fstNode;
+				      
+				      NodeList fstNmElmntLst = fstElmnt.getElementsByTagName("IDESTransmissionId");
+				      if(fstNmElmntLst!=null && fstNmElmntLst.getLength()>0){
+				      Element fstNmElmnt = (Element) fstNmElmntLst.item(0);
+				      idesTransmissionId = fstNmElmnt.getChildNodes();
+				      }
+				      NodeList secNmElmntLst = fstElmnt.getElementsByTagName("IDESSendingTs");
+				      if(secNmElmntLst!=null && secNmElmntLst.getLength()>0){
+				      Element secNmElmnt = (Element) secNmElmntLst.item(0);
+				      idesSendingDate = secNmElmnt.getChildNodes();
+				      }
+				      NodeList thNmElmntLst = fstElmnt.getElementsByTagName("SenderFileId");
+				      if(thNmElmntLst!=null && thNmElmntLst.getLength()>0){
+				      Element thNmElmnt = (Element) thNmElmntLst.item(0);
+				      senderFileId = thNmElmnt.getChildNodes();
+				    }
+				    }
+				 // }
+			  //for (int s = 0; s < actionRequestedGrp.getLength(); s++) {
+
+				     fstNode = actionRequestedGrp.item(0);
+				    
+				    if (fstNode!=null && fstNode.getNodeType() == Node.ELEMENT_NODE) {
+				  
+				      Element fstElmnt = (Element) fstNode;
+				      
+				      NodeList fstNmElmntLst = fstElmnt.getElementsByTagName("ActionRequestedTxt");
+				      if(fstNmElmntLst!=null && fstNmElmntLst.getLength()>0){
+				      Element fstNmElmnt = (Element) fstNmElmntLst.item(0);
+				      actionRequested = fstNmElmnt.getChildNodes();
+				      }
+				      NodeList secNmElmntLst = fstElmnt.getElementsByTagName("ActionRequestedDueDateTxt");
+				      if(secNmElmntLst!=null && secNmElmntLst.getLength()>0){
+				      Element secNmElmnt = (Element) secNmElmntLst.item(0);
+				      actionRequestedDueDate = secNmElmnt.getChildNodes();
+				    }
+				    }
+				  //}
+			  
+			      if(notificationContent!=null && notificationContent.getLength()>0){
+			      Element fstNmElmnt = (Element) notificationContent.item(0);
+			      notification = fstNmElmnt.getChildNodes();
+			      }
+			      //Save data to database
+			      if(notificationRefId!=null && notificationRefId.getLength()>0){
+			    	  document.put("notificationRefId", ((Node) notificationRefId.item(0)).getNodeValue());
+			      }
+			      if(idesTransmissionId!=null && idesTransmissionId.getLength()>0){
+			    	  document.put("idesTransmissionId", ((Node) idesTransmissionId.item(0)).getNodeValue());
+			      }
+			      if(senderId!=null && senderId.getLength()>0){
+			    	  document.put("senderId", ((Node) senderId.item(0)).getNodeValue());
+			      }
+			      if(senderFileId!=null && senderFileId.getLength()>0){
+			    	  document.put("senderFileId", ((Node) senderFileId.item(0)).getNodeValue());
+			      }
+			      if(notification!=null && notification.getLength()>0){
+			    	  document.put("notification", ((Node) notification.item(0)).getNodeValue());
+			      }
+			      if(actionRequested!=null && actionRequested.getLength()>0){
+			    	  document.put("actionRequested", ((Node) actionRequested.item(0)).getNodeValue());
+			      }
+			      if(actionRequestedDueDate!=null && actionRequestedDueDate.getLength()>0){
+			    	  document.put("actionRequestedDueDate", ((Node) actionRequestedDueDate.item(0)).getNodeValue());
+			      }
+			      if(createDate!=null && createDate.getLength()>0){
+			    	  document.put("createDate", ((Node) createDate.item(0)).getNodeValue());
+			      }
+			      if(idesSendingDate!=null && idesSendingDate.getLength()>0){
+			    	  document.put("idesSendingDate", ((Node) idesSendingDate.item(0)).getNodeValue());
+			      }
+			      if(document!=null){
+			      collection.save(document);
+			      parsedXml=true;
+			      }
+			  } catch (Exception e) {
+			    e.printStackTrace();
+			  }
+		return parsedXml;
 	}
 }

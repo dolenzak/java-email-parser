@@ -70,6 +70,7 @@ public class SendFatcaMain {
 		DBCollection collection = db.getCollection(collectionName);
 		DBObject document = new BasicDBObject();
 		document.put("fileType","xml");
+		document.put("country","US");
         DBCursor cursor = collection.find(document);
 		
         while(cursor.hasNext()) {
@@ -91,15 +92,23 @@ public class SendFatcaMain {
     		m.signer.signDOM(sendXmlFiles.toString(), signedXml, key, cert);
     		
     		String idesOutFile = m.pkger.createPkg(signedXml, m.senderGIIN, m.reciverGIIN, cert, 2014);
+    		
+    		//Update IDESoutFile in IRSDashboard collection
+    		String fileName=sendXmlFiles.toString().substring(sendXmlFiles.toString().lastIndexOf("/")+1);
+    		collection = db.getCollection("IRSDashboard");
+    		DBObject query = new BasicDBObject("xmlFile", fileName);
+    		DBObject update = new BasicDBObject();
+            update.put("$set", new BasicDBObject("idesFile",idesOutFile));
+            collection.update(query, update);
     		// Transfer File Using SFTP
-            boolean fileTransfered =new FileTransfer().sftpFileTransfer(idesOutFile,db);
+            //boolean fileTransfered =new FileTransfer().sftpFileTransfer(idesOutFile,db);
             
             //After Transfer the File Remove .zip file, .xml file and signed xml file
             new File(signedXml).deleteOnExit();
             new File(idesOutFile).deleteOnExit();
-            if(fileTransfered){
+            /*if(fileTransfered){
             sendXmlFiles.deleteOnExit();
-            }
+            }*/
 		}
        }
 	}

@@ -35,6 +35,8 @@ public class ReadFile {
         String fileFormat = null;
         if(fileType.equalsIgnoreCase("xml")){
         	fileFormat = ".xml";
+        }else if(fileType.equalsIgnoreCase("zip")){
+        	fileFormat = ".xml";
         }else{
         	fileFormat=".der";
         }
