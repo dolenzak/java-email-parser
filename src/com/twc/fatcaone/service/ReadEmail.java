@@ -8,6 +8,7 @@ package com.twc.fatcaone.service;
 	insert it in MongoDB.
 */
 
+import java.util.List;
 import java.util.Properties;
 
 import javax.mail.BodyPart;
@@ -19,6 +20,10 @@ import javax.mail.Multipart;
 import javax.mail.Session;
 import javax.mail.Store;
 import javax.mail.search.FlagTerm;
+
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
@@ -57,11 +62,32 @@ public final class ReadEmail {
                 BodyPart bp = mp.getBodyPart(0);
                 String bodyContent = bp.getContent().toString();
                 bodyContent=bodyContent.substring(bodyContent.indexOf('\n')+1);
+                Document doc = (Document) Jsoup.parse(bodyContent);
+    			Element table = (Element) ((org.jsoup.nodes.Element) doc).select("table").first();
+    			List<Element> listOfTD = table.select("td");
              // Save FATCA Notification Header Group data in TWC database
         		DBObject document = new BasicDBObject("_id",collection.count()+1);
         		document.put("sentDate", msg.getSentDate());
         		document.put("subject", msg.getSubject());
         		document.put("content", bodyContent);
+        		if(listOfTD.get(0).text().equalsIgnoreCase("RETURNCODE")){
+        		document.put("returnCode", listOfTD.get(1).text().toString());
+        		}
+        		if(listOfTD.get(6).text().equalsIgnoreCase("IDESTRANSID")){
+        		document.put("idesTransactionId", listOfTD.get(7).text().toString());
+        		}
+        		if(listOfTD.get(8).text().equalsIgnoreCase("FATCASENDERID")){
+        		document.put("senderId", listOfTD.get(9).text().toString());
+        		}
+        		if(listOfTD.get(14).text().equalsIgnoreCase("SENDERFILEID")){
+        		document.put("senderFileId", listOfTD.get(15).text().toString());
+        		}
+        		if(listOfTD.get(16).text().equalsIgnoreCase("SENDERFILETS")){
+        		document.put("senderFileTimestamp", listOfTD.get(17).text().toString());
+        		}
+        		if(listOfTD.get(18).text().equalsIgnoreCase("ALERTTS")){
+        		document.put("alertTimestamp", listOfTD.get(19).text().toString());
+        		}
         		collection.save(document);
             }
 			Flags flags = new Flags();

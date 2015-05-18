@@ -49,7 +49,7 @@ try{
      	String hostName = dbObject.get("ipAddress").toString();
 		 File[] xmlFiles=new ReadFile().getFiles(db,"fatcaFile",hostName,countryCode,"zip");
 		 for (File notificationXmlFile : xmlFiles) {
-			 if(parseXml(notificationXmlFile,collection)){
+			 if(parseXml(notificationXmlFile,collection,db)){
 				 if(notificationXmlFile.exists()){
 					 notificationXmlFile.delete();
 				 }
@@ -61,19 +61,19 @@ try{
 	}
 }
 	
-	public static boolean parseXml(File notificationXml,DBCollection collection){
+	public static boolean parseXml(File notificationXml,DBCollection collection,DB db){
 				boolean parsedXml= false;
 		try {
 			  DBObject document = new BasicDBObject("_id",collection.count()+1);
 			  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-			  DocumentBuilder db = dbf.newDocumentBuilder();
-			  Document doc = db.parse(notificationXml);
+			  DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
+			  Document doc = documentBuilder.parse(notificationXml);
 			  doc.getDocumentElement().normalize();
 			  NodeList notificationHeaderGrp = doc.getElementsByTagName("FATCANotificationHeaderGrp");
 			  NodeList originalFileMetadataGrp = doc.getElementsByTagName("OriginalFileMetadataGrp");
 			  NodeList actionRequestedGrp = doc.getElementsByTagName("ActionRequestedGrp");
 			  NodeList notificationContent = doc.getElementsByTagName("NotificationContentTxt");
-			  NodeList createDate=null,notificationRefId=null,senderId=null,idesTransmissionId=null,idesSendingDate=null,senderFileId=null,actionRequested=null,actionRequestedDueDate=null,notification=null;
+			  NodeList createDate=null,notificationRefId=null,senderId=null,idesTransmissionId=null,idesSendingDate=null,senderFileId=null,actionRequested=null,actionRequestedDueDate=null,notification=null,notificationCode=null;
 			  //for (int s = 0; s < notificationHeaderGrp.getLength(); s++) {
 
 			    Node fstNode = notificationHeaderGrp.item(0);
@@ -96,6 +96,11 @@ try{
 			      if(thNmElmntLst!=null && thNmElmntLst.getLength()>0){
 			      Element thNmElmnt = (Element) thNmElmntLst.item(0);
 			      senderId = thNmElmnt.getChildNodes();
+			    }
+			      NodeList frNmElmntLst = fstElmnt.getElementsByTagName("FATCANotificationCd");
+			      if(frNmElmntLst!=null && frNmElmntLst.getLength()>0){
+			      Element frNmElmnt = (Element) frNmElmntLst.item(0);
+			      notificationCode = frNmElmnt.getChildNodes();
 			    }
 			    }
 			  //}
@@ -181,9 +186,21 @@ try{
 			      collection.save(document);
 			      parsedXml=true;
 			      }
+			      
+			      //Store Notification Code in IRSDashboad
+			        saveNotificationCode(db,((Node) notificationCode.item(0)).getNodeValue(),((Node) senderFileId.item(0)).getNodeValue());
 			  } catch (Exception e) {
 			    e.printStackTrace();
 			  }
 		return parsedXml;
+	}
+	
+	//Update NotificationCode in IRSDashboard collection
+	public static void saveNotificationCode(DB db,String notificationCode,String senderFileId){
+		DBCollection collection =db.getCollection("IRSDashboard");
+		DBObject query = new BasicDBObject("idesFile", senderFileId);
+		DBObject update = new BasicDBObject();
+        update.put("$set", new BasicDBObject("notificationCode",notificationCode));
+        collection.update(query, update);
 	}
 }

@@ -101,14 +101,14 @@ public class SendFatcaMain {
             update.put("$set", new BasicDBObject("idesFile",idesOutFile));
             collection.update(query, update);
     		// Transfer File Using SFTP
-            //boolean fileTransfered =new FileTransfer().sftpFileTransfer(idesOutFile,db);
+            boolean fileTransfered =new FileTransfer().sftpFileTransfer(idesOutFile,db);
             
             //After Transfer the File Remove .zip file, .xml file and signed xml file
             new File(signedXml).deleteOnExit();
             new File(idesOutFile).deleteOnExit();
-            /*if(fileTransfered){
+            if(fileTransfered){
             sendXmlFiles.deleteOnExit();
-            }*/
+            }
 		}
        }
 	}
