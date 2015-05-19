@@ -56,8 +56,8 @@ public final class ReadEmail {
             //Message msg = inbox.getMessage(inbox.getMessageCount());
             Message unreadMessages[] = inbox.search(new FlagTerm(new Flags(Flags.Flag.SEEN), false));
             System.out.println(unreadMessages.length);
-            for(int i=1; i<=unreadMessages.length;i++){
-            	Message msg = inbox.getMessage(i);
+            for(int i=unreadMessages.length; i>0;i--){
+            	Message msg = unreadMessages[i-1];
                 Multipart mp = (Multipart) msg.getContent();
                 BodyPart bp = mp.getBodyPart(0);
                 String bodyContent = bp.getContent().toString();
@@ -72,6 +72,10 @@ public final class ReadEmail {
         		document.put("content", bodyContent);
         		if(listOfTD.get(0).text().equalsIgnoreCase("RETURNCODE")){
         		document.put("returnCode", listOfTD.get(1).text().toString());
+        		if(!listOfTD.get(1).text().toString().equalsIgnoreCase("RC021") && !listOfTD.get(1).text().toString().equalsIgnoreCase("RC024"))	
+        			if(listOfTD.get(8).text().equalsIgnoreCase("FATCASENDERID")){
+        			updateMessageCode(db,listOfTD.get(1).text().toString(),listOfTD.get(15).text().toString());
+        			}
         		}
         		if(listOfTD.get(6).text().equalsIgnoreCase("IDESTRANSID")){
         		document.put("idesTransactionId", listOfTD.get(7).text().toString());
@@ -98,6 +102,14 @@ public final class ReadEmail {
         } catch (Exception mex) {
             mex.printStackTrace();
         }
+    }
+    
+    public static void updateMessageCode(DB db,String returnCode,String senderFileId){
+    	DBCollection collection = db.getCollection("IRSDashboard");
+		DBObject query = new BasicDBObject("idesFile", senderFileId);
+		DBObject update = new BasicDBObject();
+        update.put("$set", new BasicDBObject("messageCode",returnCode));
+        collection.update(query, update);
     }
 }
 
