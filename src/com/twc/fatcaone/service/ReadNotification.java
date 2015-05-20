@@ -1,11 +1,7 @@
 package com.twc.fatcaone.service;
 
 import java.io.File;
-import java.net.UnknownHostException;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -19,12 +15,6 @@ import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
-import com.mongodb.Mongo;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.twc.fatcaone.notification.FATCAFileErrorNotificationType;
-import com.twc.fatcaone.notification.FATCANotificationHeaderGrpType;
-import com.twc.fatcaone.notification.OriginalFileMetadataGrpType;
 
 
 

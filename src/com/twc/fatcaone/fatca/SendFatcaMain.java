@@ -70,7 +70,6 @@ public class SendFatcaMain {
 		DBCollection collection = db.getCollection(collectionName);
 		DBObject document = new BasicDBObject();
 		document.put("fileType","xml");
-		document.put("country","US");
         DBCursor cursor = collection.find(document);
 		
         while(cursor.hasNext()) {
@@ -79,8 +78,10 @@ public class SendFatcaMain {
         	String hostName = dbObject.get("ipAddress").toString();
         	//Get the File Path From MongoDB
         	File[] xmlFiles=new ReadFile().getFiles(db,collectionName,hostName,countryCode,"xml");
+        	if(xmlFiles.length>0){
         	File[] certFile=new ReadFile().getFiles(db,collectionName,hostName,countryCode,"crt");
         	File[] keyFile=new ReadFile().getFiles(db,collectionName,hostName,countryCode,"key");
+        	
         //File Processing
         for (File sendXmlFiles : xmlFiles) {
         	String signedXml = sendXmlFiles + ".signed";
@@ -106,11 +107,12 @@ public class SendFatcaMain {
             //After Transfer the File Remove .zip file, .xml file and signed xml file
             new File(signedXml).deleteOnExit();
             new File(idesOutFile).deleteOnExit();
-            if(fileTransfered){
-            sendXmlFiles.deleteOnExit();
+            if(fileTransfered && sendXmlFiles.exists()){
+            sendXmlFiles.delete();
             }
 		}
        }
+      }
 	}
 	
 	//Get The Private key from der file
