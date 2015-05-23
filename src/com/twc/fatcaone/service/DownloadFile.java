@@ -71,9 +71,11 @@ public class DownloadFile {
                         grabCount++; 
 
                         // Delete remote file
+                        	if(!fileFormat.equalsIgnoreCase(".der")){
                         	c.rm(oListItem.getFilename());  // Note for SFTP grabs from this remote host, deleting the file is unnecessary, 
                                                           //   as their system automatically moves an item to the 'downloaded' subfolder
                                                           //   after it has been grabbed.  For other target hosts, un comment this line to remove any downloaded files from the inbox.
+                    }
                     }
                 }
                 }
