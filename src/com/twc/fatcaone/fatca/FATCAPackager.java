@@ -41,10 +41,15 @@ import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.log4j.Logger;
 
+import com.mongodb.BasicDBObject;
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 import com.sun.org.apache.xerces.internal.jaxp.datatype.XMLGregorianCalendarImpl;
-
 import com.twc.fatcaone.fatca.idessenderfilemetadata.FATCAEntCommunicationTypeCdType;
 import com.twc.fatcaone.fatca.idessenderfilemetadata.FATCAIDESSenderFileMetadataType;
+import com.twc.fatcaone.service.DataBaseConnection;
 
 public class FATCAPackager {
 	public static String AES_TRANSFORMATION = "AES/ECB/PKCS5Padding";
@@ -414,6 +419,15 @@ public class FATCAPackager {
 		logger.debug("--> createPkgWithApprover(). signedXmlFile= " + signedXmlFile + ", senderGiin=" + senderGiin + 
 				", receiverGiin=" + receiverGiin + ", approverGiin=" + approverGiin);
 		String idesOutFile = null;
+			    // Connect Database and get the Contact Email Address
+				//Database Connection
+				DB db = new DataBaseConnection().dbConnection();
+				
+				//Get Mail Authentication
+				DBCollection collection = db.getCollection("irsMailAddress");
+				DBObject document = new BasicDBObject();
+				document.put("country","US");
+		        DBCursor cursor = collection.find(document);
 		try {
 			Date date = new Date();
 			String metadatafile = getFileName(senderGiin, "_Metadata.xml");
@@ -433,7 +447,8 @@ public class FATCAPackager {
 			metadata.setTaxYear(genTaxYear(taxyear));
 			metadata.setFATCAEntityReceiverId(receiverGiin);
 			metadata.setFileCreateTs(sdfFileCreateTs.format(date));
-			metadata.setSenderContactEmailAddressTxt(metadataEmailAddress);
+			//metadata.setSenderContactEmailAddressTxt(metadataEmailAddress);
+			metadata.setSenderContactEmailAddressTxt(cursor.next().get("mailId").toString());
 			FileWriter fw = new FileWriter(metadatafile);
 			mrshler.marshal(jaxbElemMetadata, fw);
 			fw.close();

@@ -28,6 +28,7 @@ import org.jsoup.nodes.Element;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
 public final class ReadEmail {
@@ -45,12 +46,34 @@ public final class ReadEmail {
         String collectionName="idesAlertMessage";
 		DB db = new DataBaseConnection().dbConnection();
 		DBCollection collection = db.getCollection(collectionName);
+		
+		//Get Mail Authentication
+		DBCollection mailCollection = db.getCollection("fatcaFile");
+		DBObject mailDocument = new BasicDBObject();
+		mailDocument.put("fileType","mail");
+		mailDocument.put("country","US");
+		DBCursor cursor = mailCollection.find(mailDocument);
+		String ipAddress=null,username=null,password=null,filePath=null,country=null,fileType="mail",protocol="imps";
+        int port=465;
+        
+        while(cursor.hasNext()) {
+        	DBObject dbObject = cursor.next();
+        	ipAddress=dbObject.get("ipAddress").toString();
+        	username=dbObject.get("username").toString();
+        	password=dbObject.get("password").toString();
+        	port=Integer.parseInt(dbObject.get("port").toString());
+        	filePath=dbObject.get("filePath").toString();
+        	fileType=dbObject.get("fileType").toString();
+        	country=dbObject.get("country").toString();
+        	protocol=dbObject.get("protocol").toString();
+        	
+        }
         Properties props = new Properties();
-        props.setProperty("mail.store.protocol", "imaps");
+        props.setProperty("mail.store.protocol", protocol);
         try {
             Session session = Session.getInstance(props, null);
             Store store = session.getStore();
-            store.connect("imap.zoho.com", "ides@transworldcompliance.com", "welcome1");
+            store.connect(ipAddress, username, password);
             Folder inbox = store.getFolder("INBOX");
             inbox.open(Folder.READ_WRITE);
             //Message msg = inbox.getMessage(inbox.getMessageCount());
@@ -95,7 +118,7 @@ public final class ReadEmail {
         		collection.save(document);
             }
 			Flags flags = new Flags();
-			flags.add(Flag.SEEN);
+			flags.add(Flag.DELETED);
 			inbox.setFlags(unreadMessages, flags , true);
             inbox.close(true);
             store.close();
