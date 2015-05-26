@@ -22,7 +22,9 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.twc.fatcaone.service.DataBaseConnection;
 import com.twc.fatcaone.service.FileTransfer;
+import com.twc.fatcaone.service.ReadEmail;
 import com.twc.fatcaone.service.ReadFile;
+import com.twc.fatcaone.service.ReadNotification;
 
 
 public class SendFatcaMain {
@@ -62,6 +64,8 @@ public class SendFatcaMain {
 	}
 	
 	public static void main(String[] args) throws Exception {
+		
+		if(args.length==0){
 		String collectionName="fatcaFile";
 		//Database Connection
 		DB db = new DataBaseConnection().dbConnection();
@@ -70,6 +74,7 @@ public class SendFatcaMain {
 		DBCollection collection = db.getCollection(collectionName);
 		DBObject document = new BasicDBObject();
 		document.put("fileType","xml");
+		document.put("country","US");
         DBCursor cursor = collection.find(document);
 		
         while(cursor.hasNext()) {
@@ -113,6 +118,12 @@ public class SendFatcaMain {
 		}
        }
       }
+	}else if(args[0].equalsIgnoreCase("mail")){
+		ReadEmail mail = new ReadEmail();
+		mail.getEmail();
+		ReadNotification notification = new ReadNotification();
+		notification.getNotification();
+	}
 	}
 	
 	//Get The Private key from der file

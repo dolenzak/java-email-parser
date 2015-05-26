@@ -326,7 +326,7 @@ public class FATCAPackager {
 		synchronized (fileId) {
 			logger.debug("--> getFileName(). senderGiin=" + senderGiin + ", filename=" + filename);
 			if (fileId == Long.MAX_VALUE) fileId = 0L;
-			String xmlfilename = senderGiin + "_" + fileId++ + filename;
+			String xmlfilename = System.getProperty("java.io.tmpdir")+File.separatorChar+senderGiin + "_" + fileId++ + filename;
 			File file = new File(xmlfilename);
 			int attempts = maxAttempts;
 			while(!file.createNewFile() && attempts-- > 0) {
@@ -344,7 +344,7 @@ public class FATCAPackager {
 		synchronized (fileId) {
 			logger.debug("--> getIDESFileName(). senderGiin=" + senderGiin);
 			Date date = new Date();
-			String outfile = sdfFileName.format(date) + "_" + senderGiin + ".zip";
+			String outfile = System.getProperty("java.io.tmpdir")+File.separatorChar+sdfFileName.format(date) + "_" + senderGiin + ".zip";
 			File file = new File(outfile);
 			int attempts = maxAttempts;
 			while (!file.createNewFile() && attempts-- > 0) {

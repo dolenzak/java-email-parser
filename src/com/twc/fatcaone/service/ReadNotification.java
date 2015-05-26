@@ -20,7 +20,8 @@ import com.mongodb.DBObject;
 
 public class ReadNotification {
 	
-	public static void main(String a[]){
+	//public static void main(String a[]){
+	public static void getNotification(){
 try{
     //Database Connection
   	DB db = new DataBaseConnection().dbConnection();

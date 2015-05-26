@@ -32,12 +32,12 @@ import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
 public final class ReadEmail {
-    public static void main(String[] a) {
+    /*public static void main(String[] a) {
         System.out.println("Starting...");
         ReadEmail readEmail = new ReadEmail();
         readEmail.getEmail();
         System.out.println("Ending...");
-    }
+    }*/
 
     public void getEmail() {
         
