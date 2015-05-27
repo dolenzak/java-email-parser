@@ -74,7 +74,6 @@ public class SendFatcaMain {
 		DBCollection collection = db.getCollection(collectionName);
 		DBObject document = new BasicDBObject();
 		document.put("fileType","xml");
-		document.put("country","US");
         DBCursor cursor = collection.find(document);
 		
         while(cursor.hasNext()) {
