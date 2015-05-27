@@ -8,6 +8,7 @@ import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -23,12 +24,10 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 
-
-
 public class ReadNotification {
 	
 	//public static void main(String a[]){
-	public static void getNotification(){
+	 public static void getNotification(){
 try{
     //Database Connection
   	DB db = new DataBaseConnection().dbConnection();
@@ -37,6 +36,7 @@ try{
   	collection =db.getCollection("fatcaFile");
 	document = new BasicDBObject();
 	document.put("fileType", "zip");
+	document.put("country", "US");
 	DBCursor cursor=collection.find(document);
 	String collectionName="icmmMessageNotification";
     //Save FATCA Notification Header Group data in TWC database
@@ -190,50 +190,88 @@ try{
 			      //Store Notification Code in IRSDashboad
 			      if(notificationCode!=null){
 			        saveNotificationCode(db,((Node) notificationCode.item(0)).getNodeValue(),((Node) senderFileId.item(0)).getNodeValue());
-			      //Send Error Notification
+			        //Send Error Notification
 				       if(!((Node) notificationCode.item(0)).getNodeValue().equalsIgnoreCase("NIM")){
-				    	// Recipient's email ID needs to be mentioned.
-				    	      String to = "mohan.r@mitosistech.com";
+				    	   //get Mail Template from resourcebundle
+				    	   collection =db.getCollection("resourceBundle");
+					        DBObject contentObj = new BasicDBObject();
+					        contentObj.put("msg_id", "errorNotification");
+					        DBCursor cursor = collection.find(contentObj);
+					        String mail_subject = null;
+					        String mail_body = null;
+					        
+					        while(cursor.hasNext()) {
+					        	DBObject dbObject = cursor.next();
+					        	mail_subject = dbObject.get("mail_subject").toString();
+					        	mail_body = dbObject.get("mail_body").toString();
+					        }
+					        if (mail_body == null || mail_body.length() == 0) {
+					        	return false;
+					        }
+				    	   
+					       //Get Mail Authentication details from fatcaFile
+				    	   collection = db.getCollection("fatcaFile");
+				    	   DBObject dbObject = new BasicDBObject();
+				    	   	dbObject.put("fileType", "mail");
+				    	   	dbObject.put("protocol", "smtp");
+					        DBCursor dbCursor = collection.find(dbObject);
+					        String username=null,password=null,to=null,host=null,protocol=null,from=null;
+					        int port=587;
+					        while(dbCursor.hasNext()) {
+					        	DBObject dbObj = dbCursor.next();
+					        	username = dbObj.get("username").toString();
+					        	password= dbObj.get("password").toString();
+					        	host = dbObj.get("ipAddress").toString();
+					        	port = Integer.parseInt(dbObj.get("port").toString());
+					        	protocol = dbObj.get("protocol").toString();
+					        }
+					        if(username!=null){
+					        	from = username;
+					        }
+					        // get sending Mail address
+					        collection = db.getCollection("irsMailAddress");
+					    	   DBObject dbObje = new BasicDBObject();
+					    	   dbObje.put("country", "US");
+					    	   dbObje.put("type", "ERROR");
+						        DBCursor dbCur = collection.find(dbObje);
+				  	      // Get system properties
+				  	      Properties properties = new Properties();
 
-				    	      // Sender's email ID needs to be mentioned
-				    	      String from = "krishchris1@gmail.com";
-
-				    	      // Assuming you are sending email from localhost
-				    	      String host = "localhost";
-
-				    	      // Get system properties
-				    	      Properties properties = System.getProperties();
-
-				    	      // Setup mail server
-				    	      properties.setProperty("mail.smtp.host", host);
-
-				    	      // Get the default Session object.
-				    	      Session session = Session.getDefaultInstance(properties);
-
-				    	      try{
-				    	         // Create a default MimeMessage object.
-				    	         MimeMessage message = new MimeMessage(session);
-
-				    	         // Set From: header field of the header.
-				    	         message.setFrom(new InternetAddress(from));
-
-				    	         // Set To: header field of the header.
-				    	         message.addRecipient(Message.RecipientType.TO,
-				    	                                  new InternetAddress(to));
-
-				    	         // Set Subject: header field
-				    	         message.setSubject("This is the Subject Line!");
-
-				    	         // Send the actual HTML message, as big as you like
-				    	         message.setContent("<h1>This is actual message</h1>",
-				    	                            "text/html" );
-
-				    	         // Send message
-				    	         Transport.send(message);
-				    	         System.out.println("Sent message successfully....");
-				    	      }catch (MessagingException mex) {
-				    	         mex.printStackTrace();
-				    	      }
+				  	      // Setup mail server
+				  	      properties.put("mail.smtp.auth", "true");
+				  	      properties.put("mail.smtp.starttls.enable", "true");
+				  	      properties.put("mail.smtp.host", host);
+				  	      properties.put("mail.smtp.port", port);
+				  	      
+				  	      String imagePath=System.getProperty("user.dir")+File.separatorChar+"images/twc-logo-002.png";
+				  	      //Append mail data in mail template
+				  	      mail_body = new String(mail_body.replaceAll("%msg", ((Node) notification.item(0)).getNodeValue()));
+				  	      mail_body = new String(mail_body.replaceAll("%actionRequest",((Node) actionRequested.item(0)).getNodeValue()));
+				  	      mail_body = new String(mail_body.replaceAll("%actionDueDate", ((Node) actionRequestedDueDate.item(0)).getNodeValue()));
+				  	      mail_body = new String(mail_body.replaceAll("%timestamp", ((Node) createDate.item(0)).getNodeValue()));
+				  	      mail_body = new String(mail_body.replaceAll("%refId", ((Node) notificationRefId.item(0)).getNodeValue()));
+				  	      mail_body = new String(mail_body.replaceAll("%senderId", ((Node) senderId.item(0)).getNodeValue()));
+				  	      mail_body = new String(mail_body.replaceAll("%transmissionId", ((Node) idesTransmissionId.item(0)).getNodeValue()));
+				  	      mail_body = new String(mail_body.replaceAll("%sendingTimestamp", ((Node) idesSendingDate.item(0)).getNodeValue()));
+				  	      mail_body = new String(mail_body.replaceAll("%fileId", ((Node) senderFileId.item(0)).getNodeValue()));
+				  	      //mail_body = new String(mail_body.replaceAll("%logo", "<img src='"+imagePath+"' alt='TWC' width='100px' height='100px' style='float:left;'/>"));
+				  	      // Get the default Session object.
+				  	        Session session = Session.getInstance(properties);
+				  	     // Session session = Session.getInstance(properties);
+				  	      try{
+				  	         // Send message
+				  	         Transport trans =session.getTransport(protocol);
+				  	         trans.connect(host, username, password);
+				  	         Message message = new MimeMessage(session);
+				  	         message.setFrom(new InternetAddress(from));
+				  	         message.addRecipient(Message.RecipientType.TO,new InternetAddress(dbCur.next().get("mailId").toString()));
+				  	         message.setSubject(mail_subject);
+				  	         message.setContent(mail_body,"text/html" );
+				  			 trans.sendMessage(message,message.getAllRecipients());
+				  	         System.out.println("Sent message successfully....");
+				  	      }catch (MessagingException mex) {
+				  	         mex.printStackTrace();
+				  	      }
 				       }
 			      }
 			     
