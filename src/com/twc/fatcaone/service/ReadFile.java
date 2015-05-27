@@ -33,6 +33,7 @@ public class ReadFile {
         }
         File[] files = null;
         String fileFormat = null;
+        try{
         if(fileType.equalsIgnoreCase("xml")){
         	fileFormat = ".xml";
         }else if(fileType.equalsIgnoreCase("zip")){
@@ -48,7 +49,9 @@ public class ReadFile {
         		File file = new File(downloadFilePath);
             	files = getAllFileUsingFileFormat(file,fileFormat);
         }
-        
+        }catch(Exception e){
+        	System.out.println("Read File "+e );
+        }
         return files;
 	}
         

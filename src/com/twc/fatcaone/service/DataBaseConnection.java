@@ -14,7 +14,7 @@ public class DataBaseConnection {
 		DB db = null;
 		try {
 		 //loading properites from properties file
-    	FileInputStream fis = new FileInputStream(System.getProperty("user.dir")+"/src/resources/database.properties");
+    	FileInputStream fis = new FileInputStream(System.getProperty("user.dir")+"/resources/database.properties");
 		Properties properties = new Properties();
 		properties.load(fis);
 		MongoClientURI uri  = new MongoClientURI(properties.getProperty("mongo.url")); 
