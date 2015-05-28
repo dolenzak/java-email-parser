@@ -52,6 +52,7 @@ public final class ReadEmail {
 		DBObject mailDocument = new BasicDBObject();
 		mailDocument.put("fileType","mail");
 		mailDocument.put("country","US");
+		mailDocument.put("protocol","imaps");
 		DBCursor cursor = mailCollection.find(mailDocument);
 		String ipAddress=null,username=null,password=null,filePath=null,country=null,fileType="mail",protocol="imps";
         int port=465;
