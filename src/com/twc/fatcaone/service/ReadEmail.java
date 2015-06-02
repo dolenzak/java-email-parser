@@ -8,6 +8,8 @@ package com.twc.fatcaone.service;
 	insert it in MongoDB.
 */
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Properties;
 
@@ -100,6 +102,50 @@ public final class ReadEmail {
         			if(listOfTD.get(8).text().equalsIgnoreCase("FATCASENDERID")){
         			updateMessageCode(db,listOfTD.get(1).text().toString(),listOfTD.get(15).text().toString());
         			}
+        		}
+        		if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC021")){
+        			 //Get the Downloaded SFTP Path
+        			DBObject sftpDocument = new BasicDBObject();
+        			sftpDocument.put("fileType","sh");
+        			sftpDocument.put("country","US");
+        			sftpDocument.put("protocol","sftp");
+        			DBCursor sftpCursor = mailCollection.find(sftpDocument);
+        	        
+        	        while(sftpCursor.hasNext()) {
+        	        	DBObject dbObject = sftpCursor.next();
+        	        	ipAddress=dbObject.get("ipAddress").toString();
+        	        	username=dbObject.get("username").toString();
+        	        	password=dbObject.get("password").toString();
+        	        	port=Integer.parseInt(dbObject.get("port").toString());
+        	        	filePath=dbObject.get("filePath").toString();
+        	        	fileType=dbObject.get("fileType").toString();
+        	        	country=dbObject.get("country").toString();
+        	        	protocol=dbObject.get("protocol").toString();
+        	        	
+        	        }
+        	        	DBObject shDocument = new BasicDBObject();
+        	        	shDocument.put("fileType","sh");
+        	        	shDocument.put("country","US");
+        	        	shDocument.put("protocol",null);
+        	        	DBCursor shDocumentCursor = mailCollection.find(shDocument);
+        			 Process p =Runtime.getRuntime().exec("sh "+shDocumentCursor.next().get("filePath")+" "+ipAddress+" "+username+" "+password+" "+port+" "+filePath+" "+listOfTD.get(15).text().toString());
+        			 BufferedReader stdInput = new BufferedReader(new 
+        		                InputStreamReader(p.getInputStream()));
+        			 BufferedReader stdError = new BufferedReader(new 
+        		                InputStreamReader(p.getErrorStream()));
+
+        		        // read the output from the command
+        		        String s="";
+        		        
+        		        while ((s = stdInput.readLine()) != null) {
+        		            System.out.println("Std OUT: "+s);
+        		        }
+        		        
+        		        while ((s = stdError.readLine()) != null) {
+        		            System.out.println("Std ERROR : "+s);
+        		        }
+        		        ReadNotification notification = new ReadNotification();
+        		        notification.getNotification();
         		}
         		if(listOfTD.get(6).text().equalsIgnoreCase("IDESTRANSID")){
         		document.put("idesTransactionId", listOfTD.get(7).text().toString());

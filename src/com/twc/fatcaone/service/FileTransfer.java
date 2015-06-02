@@ -59,7 +59,7 @@ public class FileTransfer {
 	            System.out.println("sftp channel opened and connected.");
 	            channelSftp = (ChannelSftp) channel;
 	            channelSftp.cd(filePath);
-	            File f = new File(System.getProperty("user.dir")+"/"+fileName);
+	            File f = new File(fileName);
 	            channelSftp.put(new FileInputStream(f), f.getName());
 	            fileTransfer = true;
 	           System.out.println("File transfered successfully to host.");

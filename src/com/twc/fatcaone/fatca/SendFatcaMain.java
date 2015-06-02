@@ -97,13 +97,13 @@ public class SendFatcaMain {
     		m.signer.signDOM(sendXmlFiles.toString(), signedXml, key, cert);
     		
     		String idesOutFile = m.pkger.createPkg(signedXml, m.senderGIIN, m.reciverGIIN, cert, 2014);
-    		
+    		File sendFile = new File(idesOutFile);
     		//Update IDESoutFile in IRSDashboard collection
     		String fileName=sendXmlFiles.toString().substring(sendXmlFiles.toString().lastIndexOf("/")+1);
     		collection = db.getCollection("IRSDashboard");
     		DBObject query = new BasicDBObject("xmlFile", fileName);
     		DBObject update = new BasicDBObject();
-            update.put("$set", new BasicDBObject("idesFile",idesOutFile));
+            update.put("$set", new BasicDBObject("idesFile",sendFile.getName()));
             collection.update(query, update);
     		// Transfer File Using SFTP
             boolean fileTransfered =new FileTransfer().sftpFileTransfer(idesOutFile,db,"US","SFTP");
@@ -120,8 +120,6 @@ public class SendFatcaMain {
 	}else if(args[0].equalsIgnoreCase("mail")){
 		ReadEmail mail = new ReadEmail();
 		mail.getEmail();
-		ReadNotification notification = new ReadNotification();
-		notification.getNotification();
 	}
 	}
 	
