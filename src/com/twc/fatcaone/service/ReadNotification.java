@@ -28,6 +28,7 @@ public class ReadNotification {
 	
 	//public static void main(String a[]){
 	 public static void getNotification(){
+		 System.out.println("Read Notification Start");
 try{
     //Database Connection
   	DB db = new DataBaseConnection().dbConnection();
@@ -274,7 +275,7 @@ try{
 				  	      }
 				       }
 			      }
-			     
+			      System.out.println("Read Notification End");
 			  } catch (Exception e) {
 			    e.printStackTrace();
 			  }

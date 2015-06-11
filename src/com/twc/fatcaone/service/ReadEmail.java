@@ -9,6 +9,7 @@ package com.twc.fatcaone.service;
 */
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Properties;
@@ -103,6 +104,7 @@ public final class ReadEmail {
         			updateMessageCode(db,listOfTD.get(1).text().toString(),listOfTD.get(15).text().toString());
         			}
         		}
+        		//IF Message Code(Reference Code) is "RC021" after that get the appropriate downloaded zip file from ICMM Server
         		if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC021")){
         			 //Get the Downloaded SFTP Path
         			DBObject sftpDocument = new BasicDBObject();
@@ -128,22 +130,11 @@ public final class ReadEmail {
         	        	shDocument.put("country","US");
         	        	shDocument.put("protocol",null);
         	        	DBCursor shDocumentCursor = mailCollection.find(shDocument);
-        			 Process p =Runtime.getRuntime().exec("sh "+shDocumentCursor.next().get("filePath")+" "+ipAddress+" "+username+" "+password+" "+port+" "+filePath+" "+listOfTD.get(15).text().toString());
-        			 BufferedReader stdInput = new BufferedReader(new 
-        		                InputStreamReader(p.getInputStream()));
-        			 BufferedReader stdError = new BufferedReader(new 
-        		                InputStreamReader(p.getErrorStream()));
-
-        		        // read the output from the command
-        		        String s="";
-        		        
-        		        while ((s = stdInput.readLine()) != null) {
-        		            System.out.println("Std OUT: "+s);
-        		        }
-        		        
-        		        while ((s = stdError.readLine()) != null) {
-        		            System.out.println("Std ERROR : "+s);
-        		        }
+        	        	System.out.println("Running the irsmessage.sh shell script");
+        	        	String authentication = shDocumentCursor.next().get("filePath")+" "+ipAddress+" "+username+" "+password+" "+port+" "+filePath+" ";
+        	        	String idesTransactionId = listOfTD.get(7).text().toString();
+        	        	runShellScript(authentication,idesTransactionId);
+        		        System.out.println("Read Notification");
         		        ReadNotification notification = new ReadNotification();
         		        notification.getNotification();
         		}
@@ -165,7 +156,8 @@ public final class ReadEmail {
         		collection.save(document);
             }
 			Flags flags = new Flags();
-			flags.add(Flag.DELETED);
+			//flags.add(Flag.DELETED);
+			flags.add(Flag.SEEN);
 			inbox.setFlags(unreadMessages, flags , true);
             inbox.close(true);
             store.close();
@@ -180,6 +172,33 @@ public final class ReadEmail {
 		DBObject update = new BasicDBObject();
         update.put("$set", new BasicDBObject("messageCode",returnCode));
         collection.update(query, update);
+    }
+    public void runShellScript(String authentication,String idesTransactionId){
+    	Process p;
+		try {
+			p = Runtime.getRuntime().exec(authentication+idesTransactionId+".zip");
+		
+		 BufferedReader stdInput = new BufferedReader(new 
+	                InputStreamReader(p.getInputStream()));
+		 BufferedReader stdError = new BufferedReader(new 
+	                InputStreamReader(p.getErrorStream()));
+
+	        // read the output from the command
+	        String s="";
+	        
+	        while ((s = stdInput.readLine()) != null) {
+	            System.out.println("Std OUT: "+s);
+	        }
+	        
+	        while ((s = stdError.readLine()) != null) {
+	            System.out.println("Std ERROR : "+s);
+	        }
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			System.out.println("Error In Running Shell Script "+e);
+			e.printStackTrace();
+			
+		}
     }
 }
 

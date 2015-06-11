@@ -427,6 +427,7 @@ public class FATCAPackager {
 				DBCollection collection = db.getCollection("irsMailAddress");
 				DBObject document = new BasicDBObject();
 				document.put("country","US");
+				document.put("type","METADATA");
 		        DBCursor cursor = collection.find(document);
 		try {
 			Date date = new Date();
@@ -448,7 +449,11 @@ public class FATCAPackager {
 			metadata.setFATCAEntityReceiverId(receiverGiin);
 			metadata.setFileCreateTs(sdfFileCreateTs.format(date));
 			//metadata.setSenderContactEmailAddressTxt(metadataEmailAddress);
-			metadata.setSenderContactEmailAddressTxt(cursor.next().get("mailId").toString());
+			while(cursor.hasNext()) {
+				DBObject dbObject = cursor.next();
+				metadataEmailAddress=dbObject.get("mailId").toString();
+			}
+			metadata.setSenderContactEmailAddressTxt(metadataEmailAddress);
 			FileWriter fw = new FileWriter(metadatafile);
 			mrshler.marshal(jaxbElemMetadata, fw);
 			fw.close();
