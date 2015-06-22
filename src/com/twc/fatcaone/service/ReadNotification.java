@@ -74,7 +74,8 @@ try{
 			  NodeList originalFileMetadataGrp = doc.getElementsByTagName("OriginalFileMetadataGrp");
 			  NodeList actionRequestedGrp = doc.getElementsByTagName("ActionRequestedGrp");
 			  NodeList notificationContent = doc.getElementsByTagName("NotificationContentTxt");
-			  NodeList createDate=null,notificationRefId=null,senderId=null,idesTransmissionId=null,idesSendingDate=null,senderFileId=null,actionRequested=null,actionRequestedDueDate=null,notification=null,notificationCode=null;
+			  NodeList originalFileProcessingDataGrp = doc.getElementsByTagName("OriginalFileProcessingDataGrp");
+			  NodeList createDate=null,notificationRefId=null,senderId=null,idesTransmissionId=null,idesSendingDate=null,senderFileId=null,actionRequested=null,actionRequestedDueDate=null,notification=null,notificationCode=null,financialInstitutionCount=null,recordCount=null,accountReportRecordCount=null,pooledReportRecordCount=null;
 			  //for (int s = 0; s < notificationHeaderGrp.getLength(); s++) {
 
 			    Node fstNode = notificationHeaderGrp.item(0);
@@ -155,6 +156,37 @@ try{
 			      Element fstNmElmnt = (Element) notificationContent.item(0);
 			      notification = fstNmElmnt.getChildNodes();
 			      }
+			      
+			      //Get the submitted record counts
+			         fstNode = originalFileProcessingDataGrp.item(0);
+				    
+				    if (fstNode!=null && fstNode.getNodeType() == Node.ELEMENT_NODE) {
+				  
+				      Element fstElmnt = (Element) fstNode;
+				      
+				      NodeList fstNmElmntLst = fstElmnt.getElementsByTagName("FinancialInstitutionCnt");
+				      if(fstNmElmntLst!=null && fstNmElmntLst.getLength()>0){
+				      Element fstNmElmnt = (Element) fstNmElmntLst.item(0);
+				      financialInstitutionCount = fstNmElmnt.getChildNodes();
+				      }
+				      NodeList secNmElmntLst = fstElmnt.getElementsByTagName("RecordCnt");
+				      if(secNmElmntLst!=null && secNmElmntLst.getLength()>0){
+				      Element secNmElmnt = (Element) secNmElmntLst.item(0);
+				      recordCount = secNmElmnt.getChildNodes();
+				      }
+				      NodeList thNmElmntLst = fstElmnt.getElementsByTagName("AccountReportRecordCnt");
+				      if(thNmElmntLst!=null && thNmElmntLst.getLength()>0){
+				      Element thNmElmnt = (Element) thNmElmntLst.item(0);
+				      accountReportRecordCount = thNmElmnt.getChildNodes();
+				    }
+				      NodeList frNmElmntLst = fstElmnt.getElementsByTagName("PooledReportRecordCnt");
+				      if(frNmElmntLst!=null && frNmElmntLst.getLength()>0){
+				      Element frNmElmnt = (Element) frNmElmntLst.item(0);
+				      pooledReportRecordCount = frNmElmnt.getChildNodes();
+				    }
+				    }
+			      
+			      
 			      //Save data to database
 			      if(notificationRefId!=null && notificationRefId.getLength()>0){
 			    	  document.put("notificationRefId", ((Node) notificationRefId.item(0)).getNodeValue());
@@ -182,6 +214,18 @@ try{
 			      }
 			      if(idesSendingDate!=null && idesSendingDate.getLength()>0){
 			    	  document.put("idesSendingDate", ((Node) idesSendingDate.item(0)).getNodeValue());
+			      }
+			      if(financialInstitutionCount!=null && financialInstitutionCount.getLength()>0){
+			    	  document.put("financialInstitutionCount", ((Node) financialInstitutionCount.item(0)).getNodeValue());
+			      }
+			      if(recordCount!=null && recordCount.getLength()>0){
+			    	  document.put("recordCount", ((Node) recordCount.item(0)).getNodeValue());
+			      }
+			      if(accountReportRecordCount!=null && accountReportRecordCount.getLength()>0){
+			    	  document.put("accountReportRecordCount", ((Node) accountReportRecordCount.item(0)).getNodeValue());
+			      }
+			      if(pooledReportRecordCount!=null && pooledReportRecordCount.getLength()>0){
+			    	  document.put("pooledReportRecordCount", ((Node) pooledReportRecordCount.item(0)).getNodeValue());
 			      }
 			      if(document!=null){
 			      collection.save(document);
