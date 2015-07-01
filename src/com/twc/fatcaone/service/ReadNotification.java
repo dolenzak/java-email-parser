@@ -27,8 +27,9 @@ import com.mongodb.DBObject;
 public class ReadNotification {
 	
 	//public static void main(String a[]){
-	 public static void getNotification(){
+	 public static boolean getNotification(){
 		 System.out.println("Read Notification Start");
+		 boolean parsedXml = false;
 try{
     //Database Connection
   	DB db = new DataBaseConnection().dbConnection();
@@ -49,36 +50,70 @@ try{
 		 File[] xmlFiles=new ReadFile().getFiles(db,"fatcaFile",hostName,countryCode,"zip");
 		 if(xmlFiles!=null){
 		 for (File notificationXmlFile : xmlFiles) {
-			 if(parseXml(notificationXmlFile,collection,db)){
+			 parsedXml=parseXml(notificationXmlFile,collection,db);
 				 if(notificationXmlFile.exists()){
 					 notificationXmlFile.delete();
 				 }
-			 }
-	 }
+			 return parsedXml;
+	     }
 		 }
 	 }
 	}catch(Exception e){
 		System.out.println("Read Notification Exception : "+e);
 	}
+	return parsedXml;
 }
 	
 	public static boolean parseXml(File notificationXml,DBCollection collection,DB db){
 				boolean parsedXml= false;
+				boolean isEmailReadAndSave = false;
 		try {
 			  DBObject document = new BasicDBObject("_id",collection.count()+1);
 			  DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 			  DocumentBuilder documentBuilder = dbf.newDocumentBuilder();
 			  Document doc = documentBuilder.parse(notificationXml);
 			  doc.getDocumentElement().normalize();
-			  NodeList notificationHeaderGrp = doc.getElementsByTagName("FATCANotificationHeaderGrp");
+			  NodeList createDate=null,notificationRefId=null,senderId=null,idesTransmissionId=null,idesSendingDate=null,senderFileId=null,actionRequested=null,actionRequestedDueDate=null,notification=null,notificationCode=null,financialInstitutionCount=null,recordCount=null,accountReportRecordCount=null,pooledReportRecordCount=null;
 			  NodeList originalFileMetadataGrp = doc.getElementsByTagName("OriginalFileMetadataGrp");
+			  
+			  Node fstNode = originalFileMetadataGrp.item(0);
+			  if (fstNode!=null &&  fstNode.getNodeType() == Node.ELEMENT_NODE) {
+			      Element fstElmnt = (Element) fstNode;
+			      NodeList thNmElmntLst = fstElmnt.getElementsByTagName("SenderFileId");
+			      if(thNmElmntLst!=null && thNmElmntLst.getLength()>0){
+			      Element thNmElmnt = (Element) thNmElmntLst.item(0);
+			      senderFileId = thNmElmnt.getChildNodes();
+			      }
+			      if(senderFileId!=null){
+			    	  String originalSenderFileId=((Node) senderFileId.item(0)).getNodeValue();
+			    	  System.out.println("===Ides File from ICMMNotification==="+originalSenderFileId);
+		    			DBCollection irsDashboardCollection = db.getCollection("IRSDashboard");
+		    			DBObject irsDashboardDocument = new BasicDBObject();
+		    			irsDashboardDocument.put("idesFile",originalSenderFileId);
+		    			DBCursor cursor = irsDashboardCollection.find(irsDashboardDocument);
+		    			String idesFile=null;
+		    			while(cursor.hasNext()) {
+		    	        	DBObject dbObject = cursor.next();
+		    	        	idesFile=dbObject.get("idesFile").toString();
+		    			}
+		    			if(idesFile!=null){
+		    				isEmailReadAndSave = true;
+		    			}
+			      }
+			  }
+			  
+			  
+			  
+			  if(isEmailReadAndSave){
+			  
+			  NodeList notificationHeaderGrp = doc.getElementsByTagName("FATCANotificationHeaderGrp");
 			  NodeList actionRequestedGrp = doc.getElementsByTagName("ActionRequestedGrp");
 			  NodeList notificationContent = doc.getElementsByTagName("NotificationContentTxt");
 			  NodeList originalFileProcessingDataGrp = doc.getElementsByTagName("OriginalFileProcessingDataGrp");
-			  NodeList createDate=null,notificationRefId=null,senderId=null,idesTransmissionId=null,idesSendingDate=null,senderFileId=null,actionRequested=null,actionRequestedDueDate=null,notification=null,notificationCode=null,financialInstitutionCount=null,recordCount=null,accountReportRecordCount=null,pooledReportRecordCount=null;
+			  
 			  //for (int s = 0; s < notificationHeaderGrp.getLength(); s++) {
 
-			    Node fstNode = notificationHeaderGrp.item(0);
+			      fstNode = notificationHeaderGrp.item(0);
 			    
 			    if (fstNode!=null && fstNode.getNodeType() == Node.ELEMENT_NODE) {
 			  
@@ -320,6 +355,7 @@ try{
 				       }
 			      }
 			      System.out.println("Read Notification End");
+			  }
 			  } catch (Exception e) {
 			    e.printStackTrace();
 			  }

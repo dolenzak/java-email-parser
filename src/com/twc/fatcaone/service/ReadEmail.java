@@ -92,6 +92,11 @@ public final class ReadEmail {
                 Document doc = (Document) Jsoup.parse(bodyContent);
     			Element table = (Element) ((org.jsoup.nodes.Element) doc).select("table").first();
     			List<Element> listOfTD = table.select("td");
+    			
+    			//Find Which Server Mail (US or Cayman)
+    			boolean isReadAndSaveEmail=false;
+    			isReadAndSaveEmail = findEmailServer(db,mailCollection,listOfTD,isReadAndSaveEmail);  
+    			if(isReadAndSaveEmail){
              // Save FATCA Notification Header Group data in TWC database
         		DBObject document = new BasicDBObject("_id",collection.count()+1);
         		document.put("sentDate", msg.getSentDate());
@@ -104,40 +109,7 @@ public final class ReadEmail {
         			updateMessageCode(db,listOfTD.get(1).text().toString(),listOfTD.get(15).text().toString());
         			}
         		}
-        		//IF Message Code(Reference Code) is "RC021" after that get the appropriate downloaded zip file from ICMM Server
-        		if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC021")){
-        			 //Get the Downloaded SFTP Path
-        			DBObject sftpDocument = new BasicDBObject();
-        			sftpDocument.put("fileType","sh");
-        			sftpDocument.put("country","US");
-        			sftpDocument.put("protocol","sftp");
-        			DBCursor sftpCursor = mailCollection.find(sftpDocument);
-        	        
-        	        while(sftpCursor.hasNext()) {
-        	        	DBObject dbObject = sftpCursor.next();
-        	        	ipAddress=dbObject.get("ipAddress").toString();
-        	        	username=dbObject.get("username").toString();
-        	        	password=dbObject.get("password").toString();
-        	        	port=Integer.parseInt(dbObject.get("port").toString());
-        	        	filePath=dbObject.get("filePath").toString();
-        	        	fileType=dbObject.get("fileType").toString();
-        	        	country=dbObject.get("country").toString();
-        	        	protocol=dbObject.get("protocol").toString();
-        	        	
-        	        }
-        	        	DBObject shDocument = new BasicDBObject();
-        	        	shDocument.put("fileType","sh");
-        	        	shDocument.put("country","US");
-        	        	shDocument.put("protocol",null);
-        	        	DBCursor shDocumentCursor = mailCollection.find(shDocument);
-        	        	System.out.println("Running the irsmessage.sh shell script");
-        	        	String authentication = shDocumentCursor.next().get("filePath")+" "+ipAddress+" "+username+" "+password+" "+port+" "+filePath+" ";
-        	        	String idesTransactionId = listOfTD.get(7).text().toString();
-        	        	runShellScript(authentication,idesTransactionId);
-        		        System.out.println("Read Notification");
-        		        ReadNotification notification = new ReadNotification();
-        		        notification.getNotification();
-        		}
+        		
         		if(listOfTD.get(6).text().equalsIgnoreCase("IDESTRANSID")){
         		document.put("idesTransactionId", listOfTD.get(7).text().toString());
         		}
@@ -154,6 +126,7 @@ public final class ReadEmail {
         		document.put("alertTimestamp", listOfTD.get(19).text().toString());
         		}
         		collection.save(document);
+            }
             }
 			Flags flags = new Flags();
 			flags.add(Flag.DELETED);
@@ -198,6 +171,79 @@ public final class ReadEmail {
 			e.printStackTrace();
 			
 		}
+    }
+    
+    public boolean findEmailServer(DB db,DBCollection mailCollection,List<Element> listOfTD,boolean isReadAndSaveEmail){
+    	if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC001")){
+    		String idesFile=null;
+    		if(listOfTD.get(14).text().equalsIgnoreCase("SENDERFILEID")){
+    			System.out.println("===Ides File==="+listOfTD.get(15).text().toString());
+    			DBCollection irsDashboardCollection = db.getCollection("IRSDashboard");
+    			DBObject irsDashboardDocument = new BasicDBObject();
+    			irsDashboardDocument.put("idesFile",listOfTD.get(15).text().toString());
+    			DBCursor cursor = irsDashboardCollection.find(irsDashboardDocument);
+    			while(cursor.hasNext()) {
+    	        	DBObject dbObject = cursor.next();
+    	        	idesFile=dbObject.get("idesFile").toString();
+    			}
+    			if(idesFile!=null){
+    				return true;
+    			}
+        		}
+    	}
+    	//IF Message Code(Reference Code) is "RC021" after that get the appropriate downloaded zip file from ICMM Server
+    	else if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC021")){
+			String ipAddress=null,username=null,password=null,filePath=null,country=null,fileType="mail",protocol="imps";
+	        int port=465;
+			 //Get the Downloaded SFTP Path
+			DBObject sftpDocument = new BasicDBObject();
+			sftpDocument.put("fileType","sh");
+			sftpDocument.put("country","US");
+			sftpDocument.put("protocol","sftp");
+			DBCursor sftpCursor = mailCollection.find(sftpDocument);
+	        
+	        while(sftpCursor.hasNext()) {
+	        	DBObject dbObject = sftpCursor.next();
+	        	ipAddress=dbObject.get("ipAddress").toString();
+	        	username=dbObject.get("username").toString();
+	        	password=dbObject.get("password").toString();
+	        	port=Integer.parseInt(dbObject.get("port").toString());
+	        	filePath=dbObject.get("filePath").toString();
+	        	fileType=dbObject.get("fileType").toString();
+	        	country=dbObject.get("country").toString();
+	        	protocol=dbObject.get("protocol").toString();
+	        	
+	        }
+	        	DBObject shDocument = new BasicDBObject();
+	        	shDocument.put("fileType","sh");
+	        	shDocument.put("country","US");
+	        	shDocument.put("protocol",null);
+	        	DBCursor shDocumentCursor = mailCollection.find(shDocument);
+	        	System.out.println("Running the irsmessage.sh shell script");
+	        	String authentication = shDocumentCursor.next().get("filePath")+" "+ipAddress+" "+username+" "+password+" "+port+" "+filePath+" ";
+	        	String idesTransactionId = listOfTD.get(7).text().toString();
+	        	runShellScript(authentication,idesTransactionId);
+		        System.out.println("Read Notification");
+		        ReadNotification notification = new ReadNotification();
+		        return notification.getNotification();
+		}else if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC024")){
+			if(listOfTD.get(6).text().equalsIgnoreCase("IDESTRANSID")){
+				System.out.println("===Ides Transaction Id==="+listOfTD.get(7).text().toString());
+    			DBCollection idesAlertMessageCollection = db.getCollection("idesAlertMessage");
+    			DBObject idesAlertMessageDocument = new BasicDBObject();
+    			idesAlertMessageDocument.put("idesTransactionId",listOfTD.get(7).text().toString());
+    			DBCursor cursor = idesAlertMessageCollection.find(idesAlertMessageDocument);
+    			String idesTransactionId = null;
+    			while(cursor.hasNext()) {
+    	        	DBObject dbObject = cursor.next();
+    	        	idesTransactionId=dbObject.get("idesTransactionId").toString();
+    			}
+    			if(idesTransactionId!=null){
+    				return true;
+    			}
+        		}
+		}
+    	return isReadAndSaveEmail;
     }
 }
 
