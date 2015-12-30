@@ -12,6 +12,7 @@ import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Properties;
 
 import org.apache.log4j.Logger;
 
@@ -53,7 +54,8 @@ public class SendFatcaMain {
 	//Newly Added Code
 	
 	private String reciverGIIN = "000000.00000.TA.840";
-	private String senderGIIN = "C34VPZ.00000.SP.840";
+	//private String senderGIIN = "C34VPZ.00000.SP.840";
+	private String senderGIIN = "F7LFXP.00011.ME.840";
 	private X509Certificate cert = null;
 	private PrivateKey key = null;
 	//End
@@ -64,6 +66,17 @@ public class SendFatcaMain {
 	}
 	
 	public static void main(String[] args) throws Exception {
+		// Get the SenderGIIN and Reciver GIIN from fatcaone.config
+		SendFatcaMain m = new SendFatcaMain();
+		FileInputStream fis = new FileInputStream(System.getProperty("user.dir")+"/resources/fatcaone.config");
+		Properties properties = new Properties();
+		properties.load(fis);
+		if(properties!=null && properties.getProperty("SenderGIIN")!=null && !properties.getProperty("SenderGIIN").isEmpty()){
+			m.senderGIIN = properties.getProperty("SenderGIIN");
+		}
+		if(properties!=null && properties.getProperty("ReciverGIIN")!=null && !properties.getProperty("ReciverGIIN").isEmpty()){
+			m.reciverGIIN = properties.getProperty("ReciverGIIN");
+		}
 		
 		if(args.length==0){
 		String collectionName="fatcaFile";
@@ -74,6 +87,8 @@ public class SendFatcaMain {
 		DBCollection collection = db.getCollection(collectionName);
 		DBObject document = new BasicDBObject();
 		document.put("fileType","xml");
+		//===Test
+		document.put("country","US");
         DBCursor cursor = collection.find(document);
 		
         while(cursor.hasNext()) {
@@ -92,7 +107,6 @@ public class SendFatcaMain {
         	FATCAPackager.isCanonicalization = false;
         	X509Certificate cert=loadPublicX509(certFile[0]);
     		PrivateKey key=getPemPrivateKey(keyFile[0]);
-    		SendFatcaMain m = new SendFatcaMain();
     		m.signer.signStreaming(sendXmlFiles.toString(), signedXml, key, cert);
     		m.signer.signDOM(sendXmlFiles.toString(), signedXml, key, cert);
     		
@@ -120,7 +134,7 @@ public class SendFatcaMain {
 	}else if(args[0].equalsIgnoreCase("mail")){
 		ReadEmail mail = new ReadEmail();
 		mail.getEmail();
-	}
+		}
 	}
 	
 	//Get The Private key from der file

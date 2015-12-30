@@ -105,31 +105,32 @@ public final class ReadEmail {
         		if(listOfTD.get(0).text().equalsIgnoreCase("RETURNCODE")){
         		document.put("returnCode", listOfTD.get(1).text().toString());
         		if(!listOfTD.get(1).text().toString().equalsIgnoreCase("RC021") && !listOfTD.get(1).text().toString().equalsIgnoreCase("RC024"))	
-        			if(listOfTD.get(8).text().equalsIgnoreCase("FATCASENDERID")){
-        			updateMessageCode(db,listOfTD.get(1).text().toString(),listOfTD.get(15).text().toString());
+        			if(listOfTD.get(10).text().equalsIgnoreCase("FATCASENDERID")){
+        			updateMessageCode(db,listOfTD.get(1).text().toString(),listOfTD.get(17).text().toString());
         			}
         		}
         		
-        		if(listOfTD.get(6).text().equalsIgnoreCase("IDESTRANSID")){
-        		document.put("idesTransactionId", listOfTD.get(7).text().toString());
+        		if(listOfTD.get(8).text().equalsIgnoreCase("IDESTRANSID")){
+        		document.put("idesTransactionId", listOfTD.get(9).text().toString());
         		}
-        		if(listOfTD.get(8).text().equalsIgnoreCase("FATCASENDERID")){
-        		document.put("senderId", listOfTD.get(9).text().toString());
+        		if(listOfTD.get(10).text().equalsIgnoreCase("FATCASENDERID")){
+        		document.put("senderId", listOfTD.get(11).text().toString());
         		}
-        		if(listOfTD.get(14).text().equalsIgnoreCase("SENDERFILEID")){
-        		document.put("senderFileId", listOfTD.get(15).text().toString());
+        		if(listOfTD.get(16).text().equalsIgnoreCase("SENDERFILEID")){
+        		document.put("senderFileId", listOfTD.get(17).text().toString());
         		}
-        		if(listOfTD.get(16).text().equalsIgnoreCase("SENDERFILETS")){
-        		document.put("senderFileTimestamp", listOfTD.get(17).text().toString());
+        		if(listOfTD.get(18).text().equalsIgnoreCase("SENDERFILETS")){
+        		document.put("senderFileTimestamp", listOfTD.get(19).text().toString());
         		}
-        		if(listOfTD.get(18).text().equalsIgnoreCase("ALERTTS")){
-        		document.put("alertTimestamp", listOfTD.get(19).text().toString());
+        		if(listOfTD.get(20).text().equalsIgnoreCase("ALERTTS")){
+        		document.put("alertTimestamp", listOfTD.get(21).text().toString());
         		}
         		collection.save(document);
             }
             }
 			Flags flags = new Flags();
-			flags.add(Flag.DELETED);
+			//flags.add(Flag.DELETED);
+			flags.add(Flag.SEEN);
 			inbox.setFlags(unreadMessages, flags , true);
             inbox.close(true);
             store.close();
@@ -176,11 +177,11 @@ public final class ReadEmail {
     public boolean findEmailServer(DB db,DBCollection mailCollection,List<Element> listOfTD,boolean isReadAndSaveEmail){
     	if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC001")){
     		String idesFile=null;
-    		if(listOfTD.get(14).text().equalsIgnoreCase("SENDERFILEID")){
-    			System.out.println("===Ides File==="+listOfTD.get(15).text().toString());
+    		if(listOfTD.get(16).text().equalsIgnoreCase("SENDERFILEID")){
+    			System.out.println("===Ides File==="+listOfTD.get(17).text().toString());
     			DBCollection irsDashboardCollection = db.getCollection("IRSDashboard");
     			DBObject irsDashboardDocument = new BasicDBObject();
-    			irsDashboardDocument.put("idesFile",listOfTD.get(15).text().toString());
+    			irsDashboardDocument.put("idesFile",listOfTD.get(17).text().toString());
     			DBCursor cursor = irsDashboardCollection.find(irsDashboardDocument);
     			while(cursor.hasNext()) {
     	        	DBObject dbObject = cursor.next();
@@ -221,17 +222,17 @@ public final class ReadEmail {
 	        	DBCursor shDocumentCursor = mailCollection.find(shDocument);
 	        	System.out.println("Running the irsmessage.sh shell script");
 	        	String authentication = shDocumentCursor.next().get("filePath")+" "+ipAddress+" "+username+" "+password+" "+port+" "+filePath+" ";
-	        	String idesTransactionId = listOfTD.get(7).text().toString();
+	        	String idesTransactionId = listOfTD.get(9).text().toString();
 	        	runShellScript(authentication,idesTransactionId);
 		        System.out.println("Read Notification");
 		        ReadNotification notification = new ReadNotification();
 		        return notification.getNotification();
 		}else if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC024")){
-			if(listOfTD.get(6).text().equalsIgnoreCase("IDESTRANSID")){
-				System.out.println("===Ides Transaction Id==="+listOfTD.get(7).text().toString());
+			if(listOfTD.get(8).text().equalsIgnoreCase("IDESTRANSID")){
+				System.out.println("===Ides Transaction Id==="+listOfTD.get(9).text().toString());
     			DBCollection idesAlertMessageCollection = db.getCollection("idesAlertMessage");
     			DBObject idesAlertMessageDocument = new BasicDBObject();
-    			idesAlertMessageDocument.put("idesTransactionId",listOfTD.get(7).text().toString());
+    			idesAlertMessageDocument.put("idesTransactionId",listOfTD.get(9).text().toString());
     			DBCursor cursor = idesAlertMessageCollection.find(idesAlertMessageDocument);
     			String idesTransactionId = null;
     			while(cursor.hasNext()) {
