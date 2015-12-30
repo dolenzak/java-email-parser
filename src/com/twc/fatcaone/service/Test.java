@@ -2,15 +2,19 @@ package com.twc.fatcaone.service;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.security.KeyFactory;
-import java.security.PrivateKey;
-import java.security.spec.PKCS8EncodedKeySpec;
+import java.util.Properties;
 
-import com.jcraft.jsch.Channel;
-import com.jcraft.jsch.ChannelSftp;
-import com.jcraft.jsch.JSch;
-import com.jcraft.jsch.Session;
-import com.sun.org.apache.xerces.internal.impl.dv.util.Base64;
+import javax.mail.Message;
+import javax.mail.MessagingException;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.InternetAddress;
+import javax.mail.internet.MimeMessage;
+
+import com.mongodb.BasicDBObject;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
 
 
 
@@ -18,8 +22,10 @@ public class Test {
 
 	public static void main(String[] args)  {
 		// TODO Auto-generated method stub
-		try{
-		String filename = System.getProperty("user.dir")+"/"+"20150506T160655214Z_C34VPZ.00000.SP.840.zip";
+		String abc = "a";
+		System.out.println(abc.substring(0,1).toUpperCase()+abc.substring(1));
+		//try{
+			/*String filename = System.getProperty("user.dir")+"/"+"20150506T160655214Z_C34VPZ.00000.SP.840.zip";
 		//send("/home/hacker/sathiyanTest.xml");
 		System.out.println(filename);
 		//send(filename);
@@ -33,12 +39,52 @@ public class Test {
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(encoded);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         PrivateKey privKey = kf.generatePrivate(keySpec);
-        System.out.println(privKey);
+        System.out.println(privKey);*/
+			/*DBCollection collection =new DataBaseConnection().dbConnection().getCollection("resourceBundle");
+	        DBObject contentObj = new BasicDBObject();
+	        contentObj.put("msg_id", "sucessNotification");
+	        DBCursor cursor = collection.find(contentObj);
+	        String mail_subject = null;
+	        String mail_body = null;
+	        
+	        while(cursor.hasNext()) {
+	        	DBObject dbObject = cursor.next();
+	        	mail_subject = dbObject.get("mail_subject").toString();
+	        	mail_body = dbObject.get("mail_body").toString();
+	        }
+	        if (mail_body == null || mail_body.length() == 0) {
+	        	System.out.println("False");
+	        }
+	        Properties properties = new Properties();
+	        properties.put("mail.smtp.auth", "true");
+	  	      properties.put("mail.smtp.starttls.enable", "true");
+	  	      properties.put("mail.smtp.host",  "smtp.zoho.com");
+	  	      properties.put("mail.smtp.port", 587);
+	  	      
+	  	      String imagePath=System.getProperty("user.dir")+File.separatorChar+"images/twc-logo-002.png";
+	  	      //Append mail data in mail template
+	  	      // Get the default Session object.
+	  	        Session session = Session.getInstance(properties);
+	  	     // Session session = Session.getInstance(properties);
+	  	      try{
+	  	         // Send message
+	  	         Transport trans =session.getTransport("smtp");
+	  	         trans.connect("smtp.zoho.com", "donotreply@fatcaone.com", "FATCAtwc1!");
+	  	         Message message = new MimeMessage(session);
+	  	         message.setFrom(new InternetAddress("donotreply@fatcaone.com"));
+	  	         message.addRecipient(Message.RecipientType.TO,new InternetAddress("muthukrishnan.m@mitosistech.com"));
+	  	         message.setSubject(mail_subject);
+	  	         message.setContent(mail_body,"text/html" );
+	  			 trans.sendMessage(message,message.getAllRecipients());
+	  	         System.out.println("Sent message successfully....");
+	  	      }catch (MessagingException mex) {
+	  	         mex.printStackTrace();
+	  	      }
 		}catch(Exception e){
 			System.out.println("Exception : "+e);
-		}
+		}*/
 	}
-	public static void send (String fileName) {
+	/*public static void send (String fileName) {
 		 String SFTPHOST = "54.172.126.52";
 	        int SFTPPORT = 4022;
 	        String SFTPUSER = "dolenzak";
@@ -78,5 +124,5 @@ public class Test {
             session.disconnect();
             System.out.println("Host Session disconnected.");
         }
-    }   
+    }*/   
 }
