@@ -129,8 +129,8 @@ public final class ReadEmail {
             }
             }
 			Flags flags = new Flags();
-			//flags.add(Flag.DELETED);
-			flags.add(Flag.SEEN);
+			flags.add(Flag.DELETED);
+			//flags.add(Flag.SEEN);
 			inbox.setFlags(unreadMessages, flags , true);
             inbox.close(true);
             store.close();
