@@ -69,9 +69,21 @@ try{
 		 if(xmlFiles!=null){
 		 for (File notificationXmlFile : xmlFiles) {
 			 parsedXml=parseXml(notificationXmlFile,collection,db);
-				 if(notificationXmlFile.exists()){
+			 if(parsedXml){
+		        	File f = new File(notificationXmlFile.getAbsolutePath().substring(0,notificationXmlFile.getAbsolutePath().lastIndexOf(File.separator)));
+		        	if(!f.exists()){
+		        		f.mkdir();
+		        	}
+		    	    if(!new File(f.getAbsolutePath()+"/backup/").exists()){
+		    	    	new File(f.getAbsolutePath()+"/backup/").mkdir();
+		    	    }
+		    	    
+		    	   File dest=new File(f.getAbsolutePath()+"/backup/"+notificationXmlFile.getName());
+		    	   notificationXmlFile.renameTo(dest);
+				 if(notificationXmlFile!=null && notificationXmlFile.exists()){
 					 notificationXmlFile.delete();
 				 }
+			 }
 			 return parsedXml;
 	     }
 		 }
