@@ -32,6 +32,8 @@ import java.util.zip.ZipOutputStream;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.Marshaller;
@@ -52,7 +54,7 @@ import com.twc.fatcaone.fatca.idessenderfilemetadata.FATCAIDESSenderFileMetadata
 import com.twc.fatcaone.service.DataBaseConnection;
 
 public class FATCAPackager {
-	public static String AES_TRANSFORMATION = "AES/ECB/PKCS5Padding";
+	public static String AES_TRANSFORMATION = "AES/CBC/PKCS5Padding";
 	public static String RSA_TRANSFORMATION = "RSA";
 	public static String SECRET_KEY_ALGO = "AES";
 	public static int SECRET_KEY_SIZE = 256;
@@ -71,9 +73,9 @@ public class FATCAPackager {
 	protected SimpleDateFormat sdfFileCreateTs = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 	
 	protected int maxAttempts = 5;
-	
-	protected boolean aes(int opmode, String inputFile, String outputFile, SecretKey secretKey) throws Exception {
-		logger.debug("--> aes(). opmode=" + (opmode==Cipher.ENCRYPT_MODE?"ENCRYPT":"DECRYPT") + 
+
+	/*protected boolean aes(int opmode, String inputFile, String outputFile, SecretKey secretKey) throws Exception {
+		logger.debug("--> aes(). opmode=" + (opmode==Cipher.ENCRYPT_MODE?"ENCRYPT":"DECRYPT") +
 			", inputFile=" + inputFile + ", outputFile=" + outputFile);
 		if (opmode != Cipher.ENCRYPT_MODE && opmode != Cipher.DECRYPT_MODE)
 			throw new Exception("Invalid opmode " + opmode + ". Allowed opmodes are Cipher.ENCRYPT_MODE or Cipher.DECRYPT_MODE");
@@ -99,11 +101,78 @@ public class FATCAPackager {
 			if (output.length > 0)
 				bos.write(output);
 			bos.close(); bos = null;
-			bis.close(); bis = null; 
+			bis.close(); bis = null;
 			ret = true;
 		} catch (Exception e) {
 			logger.error(e.getMessage(), e);
 			throw e;
+		} finally {
+			if (bis != null) try{bis.close();}catch(Exception e) {}
+			if (bos != null) try{bos.close();}catch(Exception e) {}
+		}
+		logger.debug("<-- aes()");
+		return ret;
+	}*/
+
+	//AES encrypt or decrypt. For CBC decryption, secretKey must be 32 byte aes key + 16 byte IV and for ECB secret key must be 32 byte aes key
+	//if dualModeDecryption = true, this routing determine CBC or ECB cyber mode based on key size; 32 byte key size = ECB and
+	//48 bytes key size (32 bytes aes key + 16 bytes IV) = CBC
+	protected Cipher aes(int opmode, String inputFile, String outputFile, SecretKey secretKey) throws Exception {
+		logger.debug("--> aes(). opmode=" + (opmode==Cipher.ENCRYPT_MODE?"ENCRYPT":"DECRYPT") + ", inputFile=" + inputFile + ", outputFile=" + outputFile);
+		if (opmode != Cipher.ENCRYPT_MODE && opmode != Cipher.DECRYPT_MODE)
+			throw new Exception("Invalid opmode " + opmode + ". Allowed opmodes are Cipher.ENCRYPT_MODE or Cipher.DECRYPT_MODE");
+		Cipher ret = null;
+		BufferedInputStream bis = null;
+		BufferedOutputStream bos = null;
+		int len;
+		byte[] output = null;
+		byte[] buf = new byte[8 * 1024];
+		Cipher cipher;
+		IvParameterSpec iv = null;
+		try {
+			String transformation = "";
+			byte[] ivBuf = null;
+			if (opmode == Cipher.DECRYPT_MODE) {
+				byte[] skeyBuf = null, skeyIvBuf = secretKey.getEncoded();
+				int expectedSKeySizeInBytes = SECRET_KEY_SIZE / 8;
+				if (skeyIvBuf.length > expectedSKeySizeInBytes) {
+					//IV is appended to aes key, separate them
+					skeyBuf = new byte[expectedSKeySizeInBytes];
+					ivBuf = new byte[skeyIvBuf.length - skeyBuf.length];
+					System.arraycopy(skeyIvBuf, 0, skeyBuf, 0, skeyBuf.length);
+					System.arraycopy(skeyIvBuf, skeyBuf.length, ivBuf, 0, ivBuf.length);
+					if (ivBuf.length != 16)
+						throw new Exception("incorrect IV size - " + ivBuf.length + " bytes");
+					if (skeyBuf.length != expectedSKeySizeInBytes)
+						throw new Exception("incorrect KEY size - " + skeyBuf.length + " bytes");
+					secretKey = new SecretKeySpec(skeyBuf, SECRET_KEY_ALGO);
+					iv = new IvParameterSpec(ivBuf);
+				}
+				//for CBC, IV must not be null otherwise wrong key size
+				if (iv == null) {
+					throw new Exception("invalid KEY size - missing IV");
+				}
+			} /*else if (cipherOpMode == AesCipherOpMode.CBC) {
+				//CBC encryption. This block is not required as JDK creates IV and uses automatically for CBC for encryption
+				ivBuf = new byte[16];
+				new SecureRandom().nextBytes(ivBuf);
+				iv = new IvParameterSpec(ivBuf);
+			}*/
+			cipher = Cipher.getInstance(AES_TRANSFORMATION);
+			cipher.init(opmode, secretKey, iv);
+			bis = new BufferedInputStream(new FileInputStream(new File(inputFile)));
+			bos = new BufferedOutputStream(new FileOutputStream(new File(outputFile)));
+			while((len = bis.read(buf)) != -1) {
+				output = cipher.update(buf, 0, len);
+				if (output.length > 0)
+					bos.write(output);
+			}
+			output = cipher.doFinal();
+			if (output.length > 0)
+				bos.write(output);
+			bos.close(); bos = null;
+			bis.close(); bis = null;
+			ret = cipher;
 		} finally {
 			if (bis != null) try{bis.close();}catch(Exception e) {}
 			if (bos != null) try{bos.close();}catch(Exception e) {}
@@ -123,7 +192,7 @@ public class FATCAPackager {
 		return flag;
 	}
 	
-	protected boolean encrypt(String zippedSignedPlainTextFile, String cipherTextOutFile, PublicKey[] receiversPublicKey,
+	/*protected boolean encrypt(String zippedSignedPlainTextFile, String cipherTextOutFile, PublicKey[] receiversPublicKey,
 			String[] encryptedAESKeyOutFiles) throws Exception {
 		logger.debug("--> encrypt(). zippedSignedPlainTextFile=" + zippedSignedPlainTextFile + ", cipherTextOutFile" + cipherTextOutFile);
 		boolean ret = false;
@@ -152,6 +221,52 @@ public class FATCAPackager {
 		} catch(Exception e) {
 			logger.error(e.getMessage(), e);
 			throw e;
+		} finally {
+			if (bos != null) try{bos.close();}catch(Exception e) {}
+		}
+		logger.debug("<-- encrypt)");
+		return ret;
+	}*/
+
+	//Generates 32 bytes aes key, invokes aes() method for encryption, for CBC cipher mode, append IV (16 bytes) with aes key(32 bytes),
+	//wrap/encrypt secret key using receivers PKI public key - secret key size can be 32 bytes aes key (ECB) or 48 bytes (CBC) aes key+iv
+	protected boolean encrypt(String zippedSignedPlainTextFile, String cipherTextOutFile, PublicKey[] receiversPublicKey,
+							  String[] encryptedAESKeyOutFiles) throws Exception {
+		logger.debug("--> encrypt(). zippedSignedPlainTextFile=" + zippedSignedPlainTextFile + ", cipherTextOutFile" + cipherTextOutFile);
+		boolean ret = false;
+		SecretKey skey = null;
+		KeyGenerator generator;
+		byte[] encryptedAESKeyBuf;
+		BufferedOutputStream bos = null;
+		byte[] ivBuf = null;
+		try {
+			generator = KeyGenerator.getInstance(SECRET_KEY_ALGO);
+			generator.init(SECRET_KEY_SIZE);
+			skey = generator.generateKey();
+			byte[] skeyBuf = skey.getEncoded();
+			Cipher aesCipher = aes(Cipher.ENCRYPT_MODE, zippedSignedPlainTextFile, cipherTextOutFile, skey);
+			if (aesCipher != null) {
+				ivBuf = aesCipher.getIV();
+				for (int i = 0; i < receiversPublicKey.length && i < encryptedAESKeyOutFiles.length; i++) {
+					//wrap/encrypt secret key using receivers PKI public key -
+					//secret key size can be 32 bytes aes key (ECB) or 48 bytes (CBC) aes key+iv
+					Cipher cipher = Cipher.getInstance(RSA_TRANSFORMATION);
+					cipher.init(Cipher.WRAP_MODE, receiversPublicKey[i]);
+					if (ivBuf != null) {
+						//append 16 bytes IV to 32 bytes aes SecretKey buffer and create 48 bytes SecretKey
+						byte[] skeyPlusIvBuf = new byte[skeyBuf.length + ivBuf.length];
+						System.arraycopy(skeyBuf, 0, skeyPlusIvBuf, 0, skeyBuf.length);
+						System.arraycopy(ivBuf, 0, skeyPlusIvBuf, skeyBuf.length, ivBuf.length);
+						logger.debug("key buf size=" + skeyPlusIvBuf.length);
+						skey = new SecretKeySpec(skeyPlusIvBuf, SECRET_KEY_ALGO);;
+					}
+					encryptedAESKeyBuf = cipher.wrap(skey);
+					bos = new BufferedOutputStream(new FileOutputStream(new File(encryptedAESKeyOutFiles[i])));
+					bos.write(encryptedAESKeyBuf);
+					bos.close(); bos = null;
+				}
+				ret = true;
+			}
 		} finally {
 			if (bos != null) try{bos.close();}catch(Exception e) {}
 		}
@@ -513,7 +628,7 @@ public class FATCAPackager {
 		return idesOutFile;
 	}
 
-	protected boolean decrypt(String cipherTextFile, String encryptedAESKeyFile, String zippedSignedPlainTextFile, PrivateKey privkey) throws Exception {
+	/*protected boolean decrypt(String cipherTextFile, String encryptedAESKeyFile, String zippedSignedPlainTextFile, PrivateKey privkey) throws Exception {
 		logger.debug("--> decrypt(). cipherTextFile= " + cipherTextFile + ", encryptedAESKeyFile=" + encryptedAESKeyFile + 
 				", zippedSignedPlainTextFile=" + zippedSignedPlainTextFile);
 		SecretKey skey;
@@ -546,6 +661,39 @@ public class FATCAPackager {
 			if (bis != null) try{bis.close();}catch(Exception e) {}
 		}
 		logger.debug("<-- createPkgWithApprover()");
+		return ret;
+	}*/
+
+	//read key file into a buffer, unwrap/decrypt encrypted aes secret keykey using receiver's/own PKI private key, use aes key and decrypt payload
+	protected boolean decrypt(String cipherTextFile, String encryptedAESKeyFile, String zippedSignedPlainTextFile, PrivateKey privkey) throws Exception {
+		logger.debug("--> decrypt(). cipherTextFile= " + cipherTextFile + ", encryptedAESKeyFile=" + encryptedAESKeyFile + ", zippedSignedPlainTextFile=" + zippedSignedPlainTextFile);
+		SecretKey skey;
+		boolean ret = false;
+		BufferedInputStream bis = null;
+		byte[] buf, skeyBuf = null;
+		int len, count;
+		try {
+			buf = new byte[8 * 1024];
+			bis = new BufferedInputStream(new FileInputStream(new File(encryptedAESKeyFile)));
+			while((len = bis.read(buf)) != -1) {
+				if (skeyBuf == null) {
+					skeyBuf = new byte[len];
+					System.arraycopy(buf, 0, skeyBuf, 0, len);
+				} else {
+					count = skeyBuf.length;
+					skeyBuf = Arrays.copyOf(skeyBuf, skeyBuf.length + len);
+					System.arraycopy(buf, 0, skeyBuf, count, len);
+				}
+			}
+			bis.close(); bis = null;
+			Cipher cipher = Cipher.getInstance(RSA_TRANSFORMATION);
+			cipher.init(Cipher.UNWRAP_MODE, privkey);
+			skey = (SecretKey)cipher.unwrap(skeyBuf, SECRET_KEY_ALGO, Cipher.SECRET_KEY);
+			ret = aes(Cipher.DECRYPT_MODE, cipherTextFile, zippedSignedPlainTextFile, skey) != null ? true : false;
+		} finally {
+			if (bis != null) try{bis.close();}catch(Exception e) {}
+		}
+		logger.debug("<-- decrypt()");
 		return ret;
 	}
 	
