@@ -45,7 +45,7 @@ public class ReadNotification {
 		/System.out.println(parseXml(new File("/media/hacker/C5FC-C0E3/TWC/IssuesDoc/27/New/12-06-10-44-14-Payload.xml"),db.getCollection("icmmMessageNotification"),db));
 		//System.out.println(parseXml(new File("/home/hacker/ggts-bundle/Downloads/XMLPayload_0.xml"),db.getCollection("icmmMessageNotification"),db));
 	}*/
-	 public static boolean getNotification(){
+	 public static boolean getNotification(String idesTransactionId){
 		 System.out.println("Read Notification Start");
 		 boolean parsedXml = false;
 try{
@@ -65,19 +65,22 @@ try{
 		 DBObject dbObject = cursor.next();
      	String countryCode = dbObject.get("country").toString();
      	String hostName = dbObject.get("ipAddress").toString();
-		 File[] xmlFiles=new ReadFile().getFiles(db,"fatcaFile",hostName,countryCode,"zip");
+		 String filePath = dbObject.get("filePath").toString();
+		 File[] xmlFiles=new ReadFile().getFiles(db,"fatcaFile",hostName,countryCode,"zip", idesTransactionId);
 		 if(xmlFiles!=null){
 		 for (File notificationXmlFile : xmlFiles) {
 			 parsedXml=parseXml(notificationXmlFile,collection,db);
 			 if(parsedXml){
-		        	File f = new File(notificationXmlFile.getAbsolutePath().substring(0,notificationXmlFile.getAbsolutePath().lastIndexOf(File.separator)));
+		        	File f = new File(filePath);
 		        	if(!f.exists()){
 		        		f.mkdir();
 		        	}
-		    	    if(!new File(f.getAbsolutePath()+"/backup/").exists()){
-		    	    	new File(f.getAbsolutePath()+"/backup/").mkdir();
+		    	    if(!new File(f.getAbsolutePath() + "/backup/").exists()){
+		    	    	new File(f.getAbsolutePath() + "/backup/").mkdir();
 		    	    }
-		    	    
+
+				 	System.out.println("We are going to back the .xml up at:" + filePath);
+
 		    	   File dest=new File(f.getAbsolutePath()+"/backup/"+notificationXmlFile.getName());
 		    	   notificationXmlFile.renameTo(dest);
 				 if(notificationXmlFile!=null && notificationXmlFile.exists()){

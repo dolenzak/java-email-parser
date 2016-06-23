@@ -9,6 +9,7 @@ package com.twc.fatcaone.service;
 */
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.List;
@@ -223,10 +224,12 @@ public final class ReadEmail {
 	        	System.out.println("Running the irsmessage.sh shell script");
 	        	String authentication = shDocumentCursor.next().get("filePath")+" "+ipAddress+" "+username+" "+password+" "+port+" "+filePath+" ";
 	        	String idesTransactionId = listOfTD.get(9).text().toString();
-	        	runShellScript(authentication,idesTransactionId);
+				System.out.println("Creating folder at: " + getIRSFilePath() + File.separatorChar + idesTransactionId);
+				System.out.println("Was the folder created? " + new File(getIRSFilePath() + File.separatorChar + idesTransactionId).mkdir());
+				runShellScript(authentication,idesTransactionId);
 		        System.out.println("Read Notification");
 		        ReadNotification notification = new ReadNotification();
-		        return notification.getNotification();
+		        return notification.getNotification(idesTransactionId);
 		}else if(listOfTD.get(1).text().toString().equalsIgnoreCase("RC024")){
 			if(listOfTD.get(8).text().equalsIgnoreCase("IDESTRANSID")){
 				System.out.println("===Ides Transaction Id==="+listOfTD.get(9).text().toString());
@@ -246,5 +249,22 @@ public final class ReadEmail {
 		}
     	return isReadAndSaveEmail;
     }
+
+	private static String getIRSFilePath() {
+		DB db = new DataBaseConnection().dbConnection();
+		DBCollection collection = db.getCollection("fatcaFile");
+		DBObject document = new BasicDBObject();
+		document.put("ipAddress", "localhost");
+		document.put("country", "US");
+		document.put("fileType", "zip");
+		DBCursor cursor = collection.find(document);
+
+		while(cursor.hasNext()) {
+			DBObject dbObject = cursor.next();
+			return dbObject.get("filePath").toString();
+		}
+
+		return null;
+	}
 }
 
